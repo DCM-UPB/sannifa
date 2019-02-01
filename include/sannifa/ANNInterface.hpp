@@ -8,30 +8,22 @@ class ANNInterface
 public:
     virtual ~ANNInterface();
 
-    // --- Get information about the NN structure
+    // --- Get general information about the ANN-function
     virtual int getNInput();
     virtual int getNOutput();
 
-    virtual bool isConnected();
     virtual bool hasFirstDerivative();
     virtual bool hasSecondDerivative();
     virtual bool hasVariationalFirstDerivative();
     virtual bool hasCrossFirstDerivative();
     virtual bool hasCrossSecondDerivative();
 
-    // --- Connect the neural network
-    virtual void connect();
-    virtual void disconnect();
-
-    // --- Manage the variational parameters (which may contain a subset of beta and/or non-beta parameters),
-    //     which exist only after that they are assigned to actual parameters in the network (e.g. betas)
-    virtual void assignVariationalParameters(const int starting_layer_index = 0); // make weight parameters variational, starting from starting_layer (if the network is layered)
+    // --- Manage the variational parameters (which may contain a subset of network weights and/or other parameters)
     virtual int getNVariationalParameters();
     virtual double getVariationalParameter(const int ivp);
     virtual void getVariationalParameters(double * vp);
     virtual void setVariationalParameter(const int ivp, const double vp);
     virtual void setVariationalParameters(const double * vp);
-
 
     // --- enable/disable derivatives with respect to input
     virtual void enableFirstDerivative();  // coordinates first derivatives
