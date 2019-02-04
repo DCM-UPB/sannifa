@@ -8,16 +8,23 @@
 class TorchNetwork: public ANNFunctionInterface
 {
 protected:
-    torch::nn::AnyModule _torchNN;
-    double * _currentOutput = nullptr;
+    torch::nn::AnyModule _torchNN; // any torch module to be wrapped
 
-    void _evaluate(const double * in, const bool flag_deriv);
+    // these will always be allocated
+    int * _vparIndex1 = nullptr; // stores vpar location in torch model.parameters() vector
+    int * _vparIndex2 = nullptr; // stores vpar location in flattened tensor (the vparIndex1 element of model.parameters() vector)
+    double * _currentOutput = nullptr; // stores last output
+
+    // these will be allocated on demand (enableDerivatives)
+    double ** _currentD1 = nullptr; // stores last coordinate derivatives
+    double ** _currentD2 = nullptr; // stores last coordinate second derivatives
+    double ** _currentVD1 = nullptr; // stores last parameter derivatives
 
 public:
-    TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput); // we keep just a copy of the torch module struct
+    TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput); // we keep just a copy of the torch module
     ~TorchNetwork();
 
-    torch::nn::AnyModule * getTorchNN();;
+    torch::nn::AnyModule * getTorchNN();
 
     double getVariationalParameter(const int ivp);
     void getVariationalParameters(double * vp);
@@ -30,8 +37,7 @@ public:
     void enableCrossFirstDerivative();
     void enableCrossSecondDerivative();
 
-    void evaluate(const double * in);
-    void evaluateWithDerivatives(const double * in);
+    void evaluate(const double * in, const bool flag_deriv = false);
 
     void getOutput(double * out);
     double getOutput(const int i);

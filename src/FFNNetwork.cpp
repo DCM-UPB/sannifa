@@ -76,18 +76,12 @@ void FFNNetwork::enableCrossSecondDerivative()
     _enableCrossSecondDerivative();
 }
 
-void FFNNetwork::evaluate(const double * in)
+void FFNNetwork::evaluate(const double * in, const bool flag_deriv)
 {
-    _bareFFNN->setInput(in);
-    _bareFFNN->FFPropagate();
-    _flag_deriv = false;
-}
-
-void FFNNetwork::evaluateWithDerivatives(const double * in)
-{
-    _derivFFNN->setInput(in);
-    _derivFFNN->FFPropagate();
-    _flag_deriv = true;
+    FeedForwardNeuralNetwork * ffnnToUse = flag_deriv ? _derivFFNN : _bareFFNN;
+    ffnnToUse->setInput(in);
+    ffnnToUse->FFPropagate();
+    _flag_deriv = flag_deriv;
 }
 
 

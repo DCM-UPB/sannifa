@@ -30,8 +30,7 @@ public:
     void enableCrossFirstDerivative();
     void enableCrossSecondDerivative();
 
-    void evaluate(const double * in);
-    void evaluateWithDerivatives(const double * in);
+    void evaluate(const double * in, const bool flag_deriv = false);
 
     void getOutput(double * out);
     double getOutput(const int i);

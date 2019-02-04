@@ -2,8 +2,9 @@
 #include <iostream>
 
 #include "sannifa/TorchNetwork.hpp"
-#include "PropagateBenchmark.hpp"
 
+#include "PropagateBenchmark.hpp"
+#include "checkDerivatives.hpp"
 
 struct Model: public torch::nn::Module {
 
@@ -50,34 +51,25 @@ struct Model: public torch::nn::Module {
 int main() {
     using namespace std;
     
-    torch::nn::AnyModule anymodel(Model(2, 2, 1));
-    TorchNetwork wrapper(anymodel, 2, 1);
+    torch::nn::AnyModule anymodel(Model(2, 2, 3));
+    TorchNetwork wrapper(anymodel, 2, 3);
     auto model = wrapper.getTorchNN()->get<Model>();
 
-    cout << model << endl;
-    for (auto buffer : model.buffers()) {
-        cout << "buffer " << buffer << endl;
-    }
-    for (auto children : model.children()) {
-        cout << "children " << children << endl;
-    }
-    for (auto parameter : model.parameters()) {
-        cout << "parameter " << parameter << endl;
-    }
+    
     auto in = torch::ones({2,}, torch::dtype(torch::kFloat64));
     auto out = model.forward(in);
 
-    int ninput = model.in->options.in_;
-    cout << "ninput " << ninput << endl;
-    cout << "input: " << in << endl;
-
-    int noutput = model.out->options.out_;
-    cout << "noutput " << noutput << endl;
-    cout << "output: " << out << endl;
+    cout << "Raw object input/output:" << endl;
+    cout << "input:" << endl << in << endl;
+    cout << "output:" << endl << out << endl;
     cout << endl;
 
     // the same with TorchNetwork wrapper
-    cout << "--- Wrapper ---" << endl;
+    cout << endl << "Using wrapper object:" << endl;
+    cout << "dimensions: "
+         << wrapper.getNInput() << " "
+         << wrapper.getNOutput() << " "
+         << wrapper.getNVariationalParameters() << endl;
 
     double input[2];    
     input[0] = 1.;
@@ -85,15 +77,21 @@ int main() {
 
     wrapper.evaluate(input);
     cout << "input: " << "1 1" << endl;
-    cout << "output: " << wrapper.getOutput(0) << endl;
+    cout << "output: " << wrapper.getOutput(0) << " " << wrapper.getOutput(1) << " " << wrapper.getOutput(2) << endl;
 
-    input[0] = 0.5;
-    input[1] = -1.;
-    wrapper.evaluate(input); 
-    cout << "input: " << "0.5 -1" << endl;
-    cout << "output: " << wrapper.getOutput(0) << endl;
+    // derivative check
+    cout << endl << "Derivative check...";
+    torch::nn::AnyModule anymodel2(Model(2, 5, 2));
+    TorchNetwork wrapper2(anymodel2, 2, 2);
+    wrapper2.enableFirstDerivative();
+    wrapper2.enableSecondDerivative();
+    wrapper2.enableVariationalFirstDerivative();
+    checkDerivatives(&wrapper2, 0.0001);
+    cout << " Passed." << endl;
 
-    torch::nn::AnyModule anymodel2(Model(48, 96, 1));
-    TorchNetwork wrapper2(anymodel2, 48, 1);
-    propagateBenchmark(&wrapper, 50000);
+    cout << endl << "Benchmark...";
+    torch::nn::AnyModule anymodel3(Model(48, 96, 1));
+    TorchNetwork wrapper3(anymodel3, 48, 1);
+    propagateBenchmark(&wrapper3, 100000);
+    cout << " Done." << endl;
 }

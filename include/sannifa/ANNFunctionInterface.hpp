@@ -5,9 +5,9 @@ struct DerivativeOptions
 {
     bool d1 = false;
     bool d2 = false;
-    bool v1d = false;
-    bool c1d = false;
-    bool c2d = false;
+    bool vd1 = false;
+    bool cd1 = false;
+    bool cd2 = false;
 };
 
 class ANNFunctionInterface
@@ -20,9 +20,9 @@ protected:
 
     void _enableFirstDerivative(){_dopt.d1 = true;}
     void _enableSecondDerivative(){_dopt.d2 = true;}
-    void _enableVariationalFirstDerivative(){_dopt.v1d = true;}
-    void _enableCrossFirstDerivative(){_dopt.c1d = true;}
-    void _enableCrossSecondDerivative(){_dopt.c2d = true;}
+    void _enableVariationalFirstDerivative(){_dopt.vd1 = true;}
+    void _enableCrossFirstDerivative(){_dopt.cd1 = true;}
+    void _enableCrossSecondDerivative(){_dopt.cd2 = true;}
 
 public:
     ANNFunctionInterface(const int ninput, const int noutput, const int nvpar):
@@ -34,11 +34,13 @@ public:
     int getNOutput(){return _noutput;}
 
     bool hasDerivatives(); // true if any of the below yields true
+    bool hasInputDerivatives(); // true if any input derivatives is present
+    bool hasVariationalDerivatives(); // true if any parameter derivatives is present
     bool hasFirstDerivative(){return _dopt.d1;}
     bool hasSecondDerivative(){return _dopt.d2;}
-    bool hasVariationalFirstDerivative(){return _dopt.v1d;}
-    bool hasCrossFirstDerivative(){return _dopt.c1d;}
-    bool hasCrossSecondDerivative(){return _dopt.c2d;}
+    bool hasVariationalFirstDerivative(){return _dopt.vd1;}
+    bool hasCrossFirstDerivative(){return _dopt.cd1;}
+    bool hasCrossSecondDerivative(){return _dopt.cd2;}
 
     // --- Manage the variational parameters (which may contain a subset of network weights and/or other parameters)
     int getNVariationalParameters(){return _nvpar;}
@@ -60,10 +62,8 @@ public:
     void enableDerivatives(const DerivativeOptions &doptToEnable);
 
     // --- Propagation
-    // Routine for propagation without derivatives
-    virtual void evaluate(const double * in) = 0;
-    // Routine for propagation with derivatives
-    virtual void evaluateWithDerivatives(const double * in) = 0;
+    // Routine for propagation
+    virtual void evaluate(const double * in, const bool flag_deriv = false) = 0;
 
     // --- Get outputs
     // it remains to be decided by child classes
