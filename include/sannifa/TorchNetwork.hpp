@@ -1,33 +1,24 @@
 #ifndef TORCH_NETWORK
 #define TORCH_NETWORK
 
-#include "sannifa/ANNInterface.hpp"
+#include "sannifa/ANNFunctionInterface.hpp"
 #include <torch/torch.h>
 
-// ANNInterface wrapper around DCM-UPB/FeedForwardNeuralNetwork
-class TorchNetwork: public ANNInterface
+// ANNFunctionInterface wrapper around pytorch models
+class TorchNetwork: public ANNFunctionInterface
 {
 protected:
     torch::nn::AnyModule _torchNN;
-    int _ninput, _noutput;
-    double * _currentInput;
+    double * _currentOutput = nullptr;
+
+    void _evaluate(const double * in, const bool flag_deriv);
 
 public:
     TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput); // we keep just a copy of the torch module struct
     ~TorchNetwork();
 
-    torch::nn::AnyModule * getTorchNN();
+    torch::nn::AnyModule * getTorchNN();;
 
-    int getNInput();
-    int getNOutput();
-
-    bool hasFirstDerivative();
-    bool hasSecondDerivative();
-    bool hasVariationalFirstDerivative();
-    bool hasCrossFirstDerivative();
-    bool hasCrossSecondDerivative();
-
-    int getNVariationalParameters();
     double getVariationalParameter(const int ivp);
     void getVariationalParameters(double * vp);
     void setVariationalParameter(const int ivp, const double vp);
@@ -39,10 +30,8 @@ public:
     void enableCrossFirstDerivative();
     void enableCrossSecondDerivative();
 
-    void setInput(const double * in);
-    void setInput(const int i, const double in);
-
-    void propagate();
+    void evaluate(const double * in);
+    void evaluateWithDerivatives(const double * in);
 
     void getOutput(double * out);
     double getOutput(const int i);

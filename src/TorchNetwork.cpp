@@ -2,19 +2,17 @@
 
 #include <iostream>
 
-TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput)
+TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput): ANNFunctionInterface(ninput, noutput, 0)
 {
     _torchNN = torchNN.clone();
-    _ninput = ninput;
-    _noutput = noutput;
-    //_ninput = torchNN.in->options.in_;
-    //_noutput = torchNN.out->options.out_;
-    _currentInput = new double[_ninput];
+
+    _currentOutput = new double[_noutput];
+    for (int i=0; i<_noutput; ++i) _currentOutput[i] = 0;
 }
 
 TorchNetwork::~TorchNetwork()
 {
-    delete [] _currentInput;
+    delete [] _currentOutput;
 }
 
 torch::nn::AnyModule * TorchNetwork::getTorchNN()
@@ -22,44 +20,6 @@ torch::nn::AnyModule * TorchNetwork::getTorchNN()
     return &_torchNN;
 }
 
-int TorchNetwork::getNInput()
-{
-    return _ninput;
-}
-int TorchNetwork::getNOutput()
-{
-    return _noutput;
-}
-
-bool TorchNetwork::hasFirstDerivative()
-{
-    return false;
-}
-
-bool TorchNetwork::hasSecondDerivative()
-{
-    return false;
-}
-
-bool TorchNetwork::hasVariationalFirstDerivative()
-{
-    return false;
-}
-
-bool TorchNetwork::hasCrossFirstDerivative()
-{
-    return false;
-}
-
-bool TorchNetwork::hasCrossSecondDerivative(){
-    return false;
-}
-
-
-int TorchNetwork::getNVariationalParameters()
-{
-    return 0;
-}
 
 double TorchNetwork::getVariationalParameter(const int ivp)
 {
@@ -108,37 +68,40 @@ void TorchNetwork::enableCrossSecondDerivative()
 }
 
 
-void TorchNetwork::setInput(const double * in)
+void TorchNetwork::_evaluate(const double * in, const bool flag_deriv)
 {
-    for (int i=0; i<_ninput; ++i) {
-        _currentInput[i] = in[i];
+    // propagate and compute output (if flag_deriv, incl. recording for autodiff)
+    double inCopy[_ninput]; // de-const the input
+    for (int i=0; i<_ninput; ++i) {inCopy[i] = in[i];}
+
+    torch::Tensor inputTensor = torch::from_blob(inCopy, {_ninput},
+        torch::requires_grad(flag_deriv).dtype(torch::kFloat64));
+    auto outputTensor = _torchNN.forward(inputTensor);
+
+    auto outputAccessor = outputTensor.accessor<double,1>();
+    for (int i=0; i<outputAccessor.size(0); ++i) {
+        _currentOutput[i] = outputAccessor[i];
     }
 }
 
-void TorchNetwork::setInput(const int i, const double in)
+void TorchNetwork::evaluate(const double * in)
 {
-    _currentInput[i] = in;
+    this->_evaluate(in, false);
 }
 
-
-void TorchNetwork::propagate()
+void TorchNetwork::evaluateWithDerivatives(const double * in)
 {
-    torch::Tensor inputTensor = torch::from_blob(_currentInput, {_ninput});
-    //auto inputTensor = torch::zeros(_ninput, torch::dtype(torch::kFloat64));
-    auto outputTensor = _torchNN.forward(inputTensor);
-    std::cout << inputTensor << std::endl;
-    std::cout << outputTensor << std::endl;
+    this->_evaluate(in, true);
 }
-
 
 void TorchNetwork::getOutput(double * out)
 {
-    return;
+    for (int i=0; i<_noutput; ++i)  out[i] = _currentOutput[i];
 }
 
 double TorchNetwork::getOutput(const int i)
 {
-    return 0.;
+    return _currentOutput[i];
 }
 
 void TorchNetwork::getFirstDerivative(double ** d1)

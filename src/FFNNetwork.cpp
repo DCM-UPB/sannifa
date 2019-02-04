@@ -1,204 +1,187 @@
 #include "sannifa/FFNNetwork.hpp"
 
-FFNNetwork::FFNNetwork(FeedForwardNeuralNetwork * ffnn)
+FFNNetwork::FFNNetwork(FeedForwardNeuralNetwork * ffnn): ANNFunctionInterface(ffnn->getNInput(), ffnn->getNOutput(), ffnn->getNVariationalParameters())
 {
-    _ffnn = new FeedForwardNeuralNetwork(ffnn);
+    _bareFFNN = new FeedForwardNeuralNetwork(ffnn);
+    _derivFFNN = new FeedForwardNeuralNetwork(ffnn);
 }
 
 FFNNetwork::~FFNNetwork()
 {
-    delete _ffnn;
+    delete _bareFFNN;
+    delete _derivFFNN;
 }
 
-FeedForwardNeuralNetwork * FFNNetwork::getFFNN()
+FeedForwardNeuralNetwork * FFNNetwork::getBareFFNN()
 {
-    return _ffnn;
+    return _bareFFNN;
 }
 
-int FFNNetwork::getNInput()
+FeedForwardNeuralNetwork * FFNNetwork::getDerivFFNN()
 {
-    return _ffnn->getNInput();
-}
-int FFNNetwork::getNOutput()
-{
-    return _ffnn->getNOutput();
+    return _derivFFNN;
 }
 
-bool FFNNetwork::hasFirstDerivative()
-{
-    return _ffnn->hasFirstDerivativeSubstrate();
-}
-
-bool FFNNetwork::hasSecondDerivative()
-{
-    return _ffnn->hasSecondDerivativeSubstrate();
-}
-
-bool FFNNetwork::hasVariationalFirstDerivative()
-{
-    return _ffnn->hasVariationalFirstDerivativeSubstrate();
-}
-
-bool FFNNetwork::hasCrossFirstDerivative()
-{
-    return _ffnn->hasCrossFirstDerivativeSubstrate();
-}
-
-bool FFNNetwork::hasCrossSecondDerivative(){
-    return _ffnn->hasCrossSecondDerivativeSubstrate();
-}
-
-
-int FFNNetwork::getNVariationalParameters()
-{
-    return _ffnn->getNVariationalParameters();
-}
 
 double FFNNetwork::getVariationalParameter(const int ivp)
 {
-    return _ffnn->getVariationalParameter(ivp);
+    return _bareFFNN->getVariationalParameter(ivp);
 }
 
 void FFNNetwork::getVariationalParameters(double * vp)
 {
-    _ffnn->getVariationalParameter(vp);
+    _bareFFNN->getVariationalParameter(vp);
 }
 
 void FFNNetwork::setVariationalParameter(const int ivp, const double vp)
 {
-    _ffnn->setVariationalParameter(ivp, vp);
+    _bareFFNN->setVariationalParameter(ivp, vp);
+    _derivFFNN->setVariationalParameter(ivp, vp);
 }
 
 void FFNNetwork::setVariationalParameters(const double * vp)
 {
-    _ffnn->setVariationalParameter(vp);
+    _bareFFNN->setVariationalParameter(vp);
+    _derivFFNN->setVariationalParameter(vp);
 }
 
 
 void FFNNetwork::enableFirstDerivative()
 {
-    _ffnn->addFirstDerivativeSubstrate();
+    _derivFFNN->addFirstDerivativeSubstrate();
+    _enableFirstDerivative();
 }
 
 void FFNNetwork::enableSecondDerivative()
 {
-    _ffnn->addSecondDerivativeSubstrate();
+    _derivFFNN->addSecondDerivativeSubstrate();
+    _enableSecondDerivative();
 }
 
 void FFNNetwork::enableVariationalFirstDerivative()
 {
-    _ffnn->addVariationalFirstDerivativeSubstrate();
+    _derivFFNN->addVariationalFirstDerivativeSubstrate();
+    _enableVariationalFirstDerivative();
 }
 
 void FFNNetwork::enableCrossFirstDerivative()
 {
-    _ffnn->addCrossFirstDerivativeSubstrate();
+    _derivFFNN->addCrossFirstDerivativeSubstrate();
+    _enableCrossFirstDerivative();
 }
 
 void FFNNetwork::enableCrossSecondDerivative()
 {
-    _ffnn->addCrossSecondDerivativeSubstrate();
+    _derivFFNN->addCrossSecondDerivativeSubstrate();
+    _enableCrossSecondDerivative();
 }
 
-
-void FFNNetwork::setInput(const double * in)
+void FFNNetwork::evaluate(const double * in)
 {
-    _ffnn->setInput(in);
+    _bareFFNN->setInput(in);
+    _bareFFNN->FFPropagate();
+    _flag_deriv = false;
 }
 
-void FFNNetwork::setInput(const int i, const double in)
+void FFNNetwork::evaluateWithDerivatives(const double * in)
 {
-    _ffnn->setInput(i, in);
-}
-
-
-void FFNNetwork::propagate()
-{
-    _ffnn->FFPropagate();
+    _derivFFNN->setInput(in);
+    _derivFFNN->FFPropagate();
+    _flag_deriv = true;
 }
 
 
 void FFNNetwork::getOutput(double * out)
 {
-    _ffnn->getOutput(out);
+    if (_flag_deriv){
+        _derivFFNN->getOutput(out);
+    }
+    else {
+        _bareFFNN->getOutput(out);
+    }
 }
 
 double FFNNetwork::getOutput(const int i)
 {
-    return _ffnn->getOutput(i);
+    if (_flag_deriv){
+        return _derivFFNN->getOutput(i);
+    }
+    else {
+        return  _bareFFNN->getOutput(i);
+    }
 }
 
 void FFNNetwork::getFirstDerivative(double ** d1)
 {
-    _ffnn->getFirstDerivative(d1);
+    _derivFFNN->getFirstDerivative(d1);
 }
 
 void FFNNetwork::getFirstDerivative(const int iout, double * d1)
 {
-    _ffnn->getFirstDerivative(iout, d1);
+    _derivFFNN->getFirstDerivative(iout, d1);
 }
 
 double FFNNetwork::getFirstDerivative(const int iout, const int i1d)
 {
-    return _ffnn->getFirstDerivative(iout, i1d);
+    return _derivFFNN->getFirstDerivative(iout, i1d);
 }
 
 void FFNNetwork::getSecondDerivative(double ** d2)
 {
-    _ffnn->getSecondDerivative(d2);
+    _derivFFNN->getSecondDerivative(d2);
 }
 
 void FFNNetwork::getSecondDerivative(const int iout, double * d2)
 {
-    _ffnn->getSecondDerivative(iout, d2);
+    _derivFFNN->getSecondDerivative(iout, d2);
 }
 
 double FFNNetwork::getSecondDerivative(const int iout, const int i2d)
 {
-    return _ffnn->getSecondDerivative(iout, i2d);
+    return _derivFFNN->getSecondDerivative(iout, i2d);
 }
 
 void FFNNetwork::getVariationalFirstDerivative(double ** vd1)
 {
-    _ffnn->getVariationalFirstDerivative(vd1);
+    _derivFFNN->getVariationalFirstDerivative(vd1);
 }
 
 void FFNNetwork::getVariationalFirstDerivative(const int iout, double * vd1)
 {
-    _ffnn->getVariationalFirstDerivative(iout, vd1);
+    _derivFFNN->getVariationalFirstDerivative(iout, vd1);
 }
 
 double FFNNetwork::getVariationalFirstDerivative(const int iout, const int iv1d)
 {
-    return _ffnn->getVariationalFirstDerivative(iout, iv1d);
+    return _derivFFNN->getVariationalFirstDerivative(iout, iv1d);
 }
 
 void FFNNetwork::getCrossFirstDerivative(double *** d1vd1)
 {
-    _ffnn->getCrossFirstDerivative(d1vd1);
+    _derivFFNN->getCrossFirstDerivative(d1vd1);
 }
 
 void FFNNetwork::getCrossFirstDerivative(const int iout, double ** d1vd1)
 {
-    _ffnn->getCrossFirstDerivative(iout, d1vd1);
+    _derivFFNN->getCrossFirstDerivative(iout, d1vd1);
 }
 
 double FFNNetwork::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d)
 {
-    return _ffnn->getCrossFirstDerivative(iout, i1d, iv1d);
+    return _derivFFNN->getCrossFirstDerivative(iout, i1d, iv1d);
 }
 
 void FFNNetwork::getCrossSecondDerivative(double *** d2vd1)
 {
-    _ffnn->getCrossSecondDerivative(d2vd1);
+    _derivFFNN->getCrossSecondDerivative(d2vd1);
 }
 
 void FFNNetwork::getCrossSecondDerivative(const int iout, double ** d2vd1)
 {
-    _ffnn->getCrossSecondDerivative(iout, d2vd1);
+    _derivFFNN->getCrossSecondDerivative(iout, d2vd1);
 }
 
 double FFNNetwork::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d)
 {
-    return _ffnn->getCrossSecondDerivative(iout, i2d, iv1d);
+    return _derivFFNN->getCrossSecondDerivative(iout, i2d, iv1d);
 }

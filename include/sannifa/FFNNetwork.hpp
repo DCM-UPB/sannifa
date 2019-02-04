@@ -1,31 +1,24 @@
 #ifndef FFN_NETWORK
 #define FFN_NETWORK
 
-#include "sannifa/ANNInterface.hpp"
+#include "sannifa/ANNFunctionInterface.hpp"
 #include "FeedForwardNeuralNetwork.hpp"
 
-// ANNInterface wrapper around DCM-UPB/FeedForwardNeuralNetwork
-class FFNNetwork: public ANNInterface
+// ANNFunctionInterface wrapper around DCM-UPB/FeedForwardNeuralNetwork
+class FFNNetwork: public ANNFunctionInterface
 {
-protected:
-    FeedForwardNeuralNetwork * _ffnn;
+private:
+    FeedForwardNeuralNetwork * _bareFFNN = nullptr; // the network used for simple evaluation (no derivatives)
+    FeedForwardNeuralNetwork * _derivFFNN = nullptr; // and the one that also computes derivatives
+    bool _flag_deriv = false; // was the last evaluation with derivFFNN?
 
 public:
     FFNNetwork(FeedForwardNeuralNetwork * ffnn); // we keep a just a copy of the ffnn object
     ~FFNNetwork(); // and delete the copy here
 
-    FeedForwardNeuralNetwork * getFFNN();
+    FeedForwardNeuralNetwork * getBareFFNN();
+    FeedForwardNeuralNetwork * getDerivFFNN();
 
-    int getNInput();
-    int getNOutput();
-
-    bool hasFirstDerivative();
-    bool hasSecondDerivative();
-    bool hasVariationalFirstDerivative();
-    bool hasCrossFirstDerivative();
-    bool hasCrossSecondDerivative();
-
-    int getNVariationalParameters();
     double getVariationalParameter(const int ivp);
     void getVariationalParameters(double * vp);
     void setVariationalParameter(const int ivp, const double vp);
@@ -37,10 +30,8 @@ public:
     void enableCrossFirstDerivative();
     void enableCrossSecondDerivative();
 
-    void setInput(const double * in);
-    void setInput(const int i, const double in);
-
-    void propagate();
+    void evaluate(const double * in);
+    void evaluateWithDerivatives(const double * in);
 
     void getOutput(double * out);
     double getOutput(const int i);
