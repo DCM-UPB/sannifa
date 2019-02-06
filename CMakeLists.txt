@@ -17,13 +17,17 @@ find_path(FFNN_INCLUDE_DIR FeedForwardNeuralNetwork.hpp HINTS "${FFNN_ROOT}/incl
 find_library(FFNN_LIBRARY_DIR ffnn HINTS "${FFNN_ROOT}/lib/.libs")
 find_package_handle_standard_args(libffnn DEFAULT_MSG FFNN_LIBRARY_DIR FFNN_INCLUDE_DIR)
 
+
+message(STATUS "TORCH_INCLUDE_DIRS: ${TORCH_INCLUDE_DIRS}")
+message(STATUS "TORCH_LIBRARIES: ${TORCH_LIBRARIES}")
+message(STATUS "TORCH_CXX_FLAGS: ${TORCH_CXX_FLAGS}")
 # set header / library paths
 include_directories(include/ "${FFNN_INCLUDE_DIR}" "${TORCH_INCLUDE_DIRS}") # headers
 link_libraries("${FFNN_LIBRARY_DIR}" "${TORCH_LIBRARIES}") # libs
 
 # continue with subdirectories
-add_subdirectory (src) 
-add_subdirectory (test)
-
+add_subdirectory(src) 
+add_subdirectory(test)
+add_subdirectory(benchmark)
 #enable_testing ()
 #add_test (NAME unittests COMMAND run_tests)

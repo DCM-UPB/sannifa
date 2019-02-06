@@ -3,7 +3,6 @@
 
 #include "sannifa/TorchNetwork.hpp"
 
-#include "PropagateBenchmark.hpp"
 #include "checkDerivatives.hpp"
 
 struct Model: public torch::nn::Module {
@@ -54,7 +53,6 @@ int main() {
     torch::nn::AnyModule anymodel(Model(2, 2, 3));
     TorchNetwork wrapper(anymodel, 2, 3);
     auto model = wrapper.getTorchNN()->get<Model>();
-
     
     auto in = torch::ones({2,}, torch::dtype(torch::kFloat64));
     auto out = model.forward(in);
@@ -80,18 +78,12 @@ int main() {
     cout << "output: " << wrapper.getOutput(0) << " " << wrapper.getOutput(1) << " " << wrapper.getOutput(2) << endl;
 
     // derivative check
-    cout << endl << "Derivative check...";
+    cout << endl << "Derivative check..." << endl;
     torch::nn::AnyModule anymodel2(Model(2, 5, 2));
     TorchNetwork wrapper2(anymodel2, 2, 2);
     wrapper2.enableFirstDerivative();
     wrapper2.enableSecondDerivative();
     wrapper2.enableVariationalFirstDerivative();
     checkDerivatives(&wrapper2, 0.0001);
-    cout << " Passed." << endl;
-
-    cout << endl << "Benchmark...";
-    torch::nn::AnyModule anymodel3(Model(48, 96, 1));
-    TorchNetwork wrapper3(anymodel3, 48, 1);
-    propagateBenchmark(&wrapper3, 100000);
-    cout << " Done." << endl;
+    cout << "Passed." << endl;
 }

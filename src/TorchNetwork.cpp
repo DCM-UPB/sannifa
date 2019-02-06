@@ -17,10 +17,6 @@ int countParameters(const torch::nn::AnyModule &model)
 
 int copyTensorData(torch::Tensor &tensor, double * out)
 {
-    /*auto tensorAccessor = tensor.accessor<double,1>();
-    for (int i=0; i<tensorAccessor.size(0); ++i) {
-        out[i] = tensorAccessor[i];
-    }*/
     const int nvpar = tensor.numel();
     auto flat_tensor = tensor.view(-1);
     auto flat_accessor =  flat_tensor.accessor<double,1>();
@@ -28,6 +24,13 @@ int copyTensorData(torch::Tensor &tensor, double * out)
         out[i] = flat_accessor[i];
     }
     return nvpar;
+}
+
+void TorchNetwork::_set_requires_grad(const bool requires_grad)
+{
+    for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
+        parameterT.set_requires_grad(requires_grad);
+    }
 }
 
 TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput):
@@ -106,6 +109,7 @@ void TorchNetwork::getVariationalParameters(double * vp)
 
 void TorchNetwork::setVariationalParameter(const int ivp, const double vp)
 {
+    torch::NoGradGuard guard;
     auto flat_tensor = _torchNN.ptr()->parameters(true)[_vparIndex1[ivp]].view(-1);
     auto flat_accessor = flat_tensor.accessor<double,1>();
     flat_accessor[_vparIndex2[ivp]] = vp;
@@ -113,6 +117,7 @@ void TorchNetwork::setVariationalParameter(const int ivp, const double vp)
 
 void TorchNetwork::setVariationalParameters(const double * vp)
 {
+    torch::NoGradGuard guard;
     int ivpar = 0;
     for (auto &parameterT : _torchNN.ptr()->parameters(true)){
         auto flat_tensor = parameterT.view(-1);
@@ -178,13 +183,14 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
     const bool doParamGrad = (flag_deriv && this->hasVariationalDerivatives());
 
     if (doParamGrad) { // enable/disable parameters requires_grad, depending on need
-        for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) parameterT.set_requires_grad(true);
+        this->_set_requires_grad(true);
+        _torchNN.ptr()->zero_grad();
     }
     else {
-        for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) parameterT.set_requires_grad(false);
+        this->_set_requires_grad(false);
     }
 
-    double inCopy[_ninput]; // de-const the input
+    double inCopy[_ninput]; // de-const the input to use it in from_blob
     for (int i=0; i<_ninput; ++i) {inCopy[i] = in[i];}
 
     auto inputTensor = torch::from_blob(inCopy, {_ninput},
@@ -203,6 +209,7 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
                     auto v1dTensor = parameterT.grad();
                     ivpar += copyTensorData(v1dTensor, _currentVD1[i]+ivpar);
                 }
+                _torchNN.ptr()->zero_grad(); // we zero here for the next output pass
             }
 
             if (doInputGrad) { // at least first deriv is requested
@@ -210,18 +217,15 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
                 copyTensorData(d1Tensor, _currentD1[i]);
 
                 if (this->hasSecondDerivative()) { // requires first deriv, enforced by enable routines
-                    for (int j=0; j<_ninput; ++j) {
+                    if (doParamGrad) this->_set_requires_grad(false); // disable parameter gradients on further backwards
+                    for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
                         inputTensor.grad().zero_();
                         d1Tensor[j].backward(c10::nullopt, true, false);
-                        _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j];  // only diagonal elements
+                        _currentD2[i][j] = inputTensor.grad().data<double>()[j];
                     }
+                    if (doParamGrad) this->_set_requires_grad(true);
                 }
-            }
-
-            // zero out gradients
-            inputTensor.grad().zero_();
-            for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
-                parameterT.grad().zero_();
+                inputTensor.grad().zero_(); // we zero here for the next output pass
             }
         }
     }

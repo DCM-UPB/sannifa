@@ -3,7 +3,6 @@
 #include "FeedForwardNeuralNetwork.hpp"
 #include "sannifa/FFNNetwork.hpp"
 
-#include "PropagateBenchmark.hpp"
 #include "checkDerivatives.hpp"
 
 int main() {
@@ -18,13 +17,4 @@ int main() {
     
     FFNNetwork wrapper(&ffnn);
     checkDerivatives(&wrapper, 0.0001);
-
-    // benchmark
-    FeedForwardNeuralNetwork ffnn2(49, 97, 2);
-    ffnn2.pushHiddenLayer(97);
-    ffnn2.connectFFNN();
-    ffnn2.assignVariationalParameters();
-
-    FFNNetwork wrapper2(&ffnn2);
-    propagateBenchmark(&wrapper2, 1000);
 }
