@@ -86,6 +86,24 @@ torch::nn::AnyModule * TorchNetwork::getTorchNN()
     return &_torchNN;
 }
 
+void TorchNetwork::saveToFile(const std::string &filename)
+{
+    torch::save(_torchNN.ptr(), filename);
+}
+
+void TorchNetwork::printInfo(const bool verbose)
+{
+    using namespace std;
+    ANNFunctionInterface::printInfo(verbose);
+    if (verbose) {
+        ostream & oStream = cout;
+        oStream << endl;
+        oStream << "PyTorch NN Info:" << endl;
+        _torchNN.ptr()->pretty_print(oStream);
+        oStream << endl;
+    }
+}
+
 
 double TorchNetwork::getVariationalParameter(const int ivp)
 {
@@ -220,7 +238,7 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
                     if (doParamGrad) this->_set_requires_grad(false); // disable parameter gradients on further backwards (slightly faster)
                     for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
                         inputTensor.grad().zero_();
-                        d1Tensor[j].backward(c10::nullopt, true, false);
+                        d1Tensor[j].backward(c10::nullopt, (j<_ninput-1) ? true : false, false);
                         _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j];
                     }
                     if (doParamGrad) this->_set_requires_grad(true); // reenable

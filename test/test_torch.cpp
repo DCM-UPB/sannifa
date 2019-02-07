@@ -78,12 +78,16 @@ int main() {
     cout << "output: " << wrapper.getOutput(0) << " " << wrapper.getOutput(1) << " " << wrapper.getOutput(2) << endl;
 
     // derivative check
-    cout << endl << "Derivative check..." << endl;
-    torch::nn::AnyModule anymodel2(Model(2, 5, 2));
+    torch::nn::AnyModule anymodel2(Model(2, 4, 2));
     TorchNetwork wrapper2(anymodel2, 2, 2);
-    wrapper2.enableFirstDerivative();
-    wrapper2.enableSecondDerivative();
-    wrapper2.enableVariationalFirstDerivative();
+    DerivativeOptions dopt;
+    dopt.d1 = true; dopt.d2 = true; dopt.vd1 = true;
+    wrapper2.enableDerivatives(dopt);
+
+    wrapper2.printInfo(true);
+    cout << endl << "Derivative check..." << endl;
     checkDerivatives(&wrapper2, 0.0001);
     cout << "Passed." << endl;
+
+    wrapper2.saveToFile("torch.out");
 }

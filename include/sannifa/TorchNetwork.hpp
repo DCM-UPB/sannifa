@@ -24,9 +24,16 @@ protected:
 
 public:
     TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput); // we keep just a copy of the torch module
+    //explicit TorchNetwork(const std::string &filename); // load from file, not implemented (load the model externally and use the normal constructor instead)
+
     ~TorchNetwork();
 
     torch::nn::AnyModule * getTorchNN();
+
+    void saveToFile(const std::string &filename);
+
+    void printInfo(const bool verbose = false); // add backend specific print, if verbose
+    std::string getLibName(){return "libtorch";}
 
     double getVariationalParameter(const int ivp);
     void getVariationalParameters(double * vp);

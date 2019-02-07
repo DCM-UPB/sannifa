@@ -1,6 +1,9 @@
 #ifndef ANN_FUNCTION_INTERFACE
 #define ANN_FUNCTION_INTERFACE
 
+#include <string>
+#include <array>
+
 struct DerivativeOptions
 {
     bool d1 = false;
@@ -27,11 +30,22 @@ protected:
 public:
     ANNFunctionInterface(const int ninput, const int noutput, const int nvpar):
         _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
+    ANNFunctionInterface(const std::array<int, 3> &dimensions):
+        _ninput(dimensions[0]), _noutput(dimensions[1]), _nvpar(dimensions[2]) {}
+    // if possible, the following constructor should be implemented in child:
+    // ChildNetwork(const std::string &filename): ANNFunctionInterface(_loadDimensions(filename)) {...};
     virtual ~ANNFunctionInterface(){}
 
+    // --- store to file ---
+    virtual void saveToFile(const std::string &filename) = 0; // save to a loadable file
+
     // --- Get general information about the ANN-function
+    virtual void printInfo(const bool verbose = false); // can be overriden by child, but should still be called by the override
+    virtual std::string getLibName() = 0; // should return a string that identifies the used backend lib
+
     int getNInput(){return _ninput;}
     int getNOutput(){return _noutput;}
+    int getNVariationalParameters(){return _nvpar;}
 
     bool hasDerivatives(); // true if any of the below yields true
     bool hasInputDerivatives(); // true if any input derivatives is present
@@ -43,7 +57,6 @@ public:
     bool hasCrossSecondDerivative(){return _dopt.cd2;}
 
     // --- Manage the variational parameters (which may contain a subset of network weights and/or other parameters)
-    int getNVariationalParameters(){return _nvpar;}
     virtual double getVariationalParameter(const int ivp) = 0;
     virtual void getVariationalParameters(double * vp) = 0;
     virtual void setVariationalParameter(const int ivp, const double vp) = 0;
@@ -57,7 +70,6 @@ public:
     virtual void enableVariationalFirstDerivative() = 0;  // parameter first derivatives
     virtual void enableCrossFirstDerivative() = 0;  // parameters first coordinates first derivatives
     virtual void enableCrossSecondDerivative() = 0; // parameters first coordinates second derivatives
-
     // shortcut for enabling multiple derivatives
     void enableDerivatives(const DerivativeOptions &doptToEnable);
 

@@ -13,11 +13,18 @@ private:
     bool _flag_deriv = false; // was the last evaluation with derivFFNN?
 
 public:
-    FFNNetwork(FeedForwardNeuralNetwork * ffnn); // we keep a just a copy of the ffnn object
+    FFNNetwork(FeedForwardNeuralNetwork * ffnn); // we keep just a copy of the ffnn object
+    explicit FFNNetwork(const std::string &filename); // load from file
+
     ~FFNNetwork(); // and delete the copy here
 
     FeedForwardNeuralNetwork * getBareFFNN();
     FeedForwardNeuralNetwork * getDerivFFNN();
+
+    void saveToFile(const std::string &filename);
+
+    void printInfo(const bool verbose = false); // add backend specific print, if verbose
+    std::string getLibName(){return "libffnn";}
 
     double getVariationalParameter(const int ivp);
     void getVariationalParameters(double * vp);

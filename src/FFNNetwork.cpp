@@ -1,9 +1,28 @@
 #include "sannifa/FFNNetwork.hpp"
 
+// internal helpers
+
+std::array<int, 3> loadDimensions(const std::string &filename)
+{
+    const char * fname_char = filename.c_str();
+    FeedForwardNeuralNetwork ffnn(fname_char);
+    std::array<int, 3> ret {ffnn.getNInput(), ffnn.getNOutput(), ffnn.getNVariationalParameters()};
+    return ret;
+}
+
+// class methods
+
 FFNNetwork::FFNNetwork(FeedForwardNeuralNetwork * ffnn): ANNFunctionInterface(ffnn->getNInput(), ffnn->getNOutput(), ffnn->getNVariationalParameters())
 {
     _bareFFNN = new FeedForwardNeuralNetwork(ffnn);
     _derivFFNN = new FeedForwardNeuralNetwork(ffnn);
+}
+
+FFNNetwork::FFNNetwork(const std::string &filename): ANNFunctionInterface(loadDimensions(filename))
+{
+    const char * fname_char = filename.c_str();
+    _bareFFNN = new FeedForwardNeuralNetwork(fname_char);
+    _derivFFNN = new FeedForwardNeuralNetwork(fname_char);
 }
 
 FFNNetwork::~FFNNetwork()
@@ -20,6 +39,19 @@ FeedForwardNeuralNetwork * FFNNetwork::getBareFFNN()
 FeedForwardNeuralNetwork * FFNNetwork::getDerivFFNN()
 {
     return _derivFFNN;
+}
+
+void FFNNetwork::saveToFile(const std::string &filename)
+{
+    const char * fname_char = filename.c_str();
+    _bareFFNN->storeOnFile(fname_char, true);
+}
+
+void FFNNetwork::printInfo(const bool verbose)
+{
+    ANNFunctionInterface::printInfo(verbose);
+    /*if (verbose) { // to be done later
+      }*/
 }
 
 
