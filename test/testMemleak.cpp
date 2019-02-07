@@ -6,5 +6,6 @@ int main() {
         auto Y = X*X;
         Y.backward(c10::nullopt, true, true);
         X.grad()[0].backward(c10::nullopt, false, false);
+        X.grad().detach_(); // this prevents the leak
     }
 }

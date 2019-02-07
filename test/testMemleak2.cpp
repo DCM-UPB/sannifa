@@ -16,9 +16,6 @@ int main() {
             Xgrad[j].backward(c10::nullopt, (j<1) ? true : false, false);
             std::cout << "Second derivatives [" << j << "]" << std::endl << X.grad() << std::endl;
         }
-        Y.detach();
-        Xgrad.detach();
-        X.grad().detach();
-        X.detach();
+        X.grad().detach_(); // this prevents leak
     }
 }

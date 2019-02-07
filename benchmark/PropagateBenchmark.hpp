@@ -2,6 +2,9 @@
 #define PROPAGATE_BENCHMARK
 
 #include <exception>
+#include <array>
+#include <algorithm>
+#include <functional>
 
 #include "sannifa/ANNFunctionInterface.hpp"
 
@@ -26,55 +29,74 @@ double propagateBenchmark(ANNFunctionInterface * ann, const int nsteps, const bo
     time = timer->elapsed();
     delete timer;
     
-    return time/nsteps;
+    return time;
 }
 
 
-std::vector<double> benchmarkDerivatives(ANNFunctionInterface * ann, const std::vector<int> &nstepsVec, const bool verbose = false)
-{   
+std::array<double, 6> benchmarkDerivatives(ANNFunctionInterface * ann1, ANNFunctionInterface * ann2, const std::array<int, 6> &nsteps, const bool verbose = false)
+{   // ! ann1 and ann2 should be identical (but different objects) !
     using namespace std;
     // expects an ann without any derivatives enabled
-    if (ann->hasDerivatives()) {
+    if (ann1->hasDerivatives() || ann2->hasDerivatives()) {
         throw invalid_argument("To be benchmarked ANN should be without any enabled derivatives.");
     }
 
-    vector<double> times;
+    array<double, 6> times;
     
     // no derivatives
     if (verbose) cout << endl << "Running benchmark (no deriv)..." << endl;
-    times.push_back(propagateBenchmark(ann, nstepsVec[0], false));
-    if (verbose) cout << "Done." << endl;
+    times[0] = propagateBenchmark(ann1, nsteps[0], false);
+    if (verbose) cout << "Done. (" << times[0] << " s / " << nsteps[0] << " steps)" << endl;
 
     // 1st deriv
-    ann->enableFirstDerivative();
+    ann1->enableFirstDerivative();
     if (verbose) cout << endl << "Running benchmark (d1)..." << endl;
-    times.push_back(propagateBenchmark(ann, nstepsVec[1], true));
-    if (verbose) cout << "Done." << endl;
+    times[1] = propagateBenchmark(ann1, nsteps[1], true);
+    if (verbose) cout << "Done. (" << times[1] << " s / " << nsteps[1] << " steps)" << endl;
 
     // 1st+2nd deriv
-    ann->enableSecondDerivative();
+    ann1->enableSecondDerivative();
     if (verbose) cout << endl << "Running benchmark (d1+d2)..." << endl;
-    times.push_back(propagateBenchmark(ann, nstepsVec[2], true));
-    if (verbose) cout << "Done." << endl;
+    times[2] = propagateBenchmark(ann1, nsteps[2], true);
+    if (verbose) cout << "Done. (" << times[2] << " s / " << nsteps[2] << " steps)" << endl;
+
+    // 1st param deriv
+    ann2->enableVariationalFirstDerivative();
+    if (verbose) cout << endl << "Running benchmark (vd1)..." << endl;
+    times[3] = propagateBenchmark(ann2, nsteps[3], true);
+    if (verbose) cout << "Done. (" << times[3] << " s / " << nsteps[3] << " steps)" << endl;
+
+    // 1st deriv + 1st param deriv
+    ann2->enableFirstDerivative();
+    if (verbose) cout << endl << "Running benchmark (d1+vd1)..." << endl;
+    times[4] = propagateBenchmark(ann2, nsteps[4], true);
+    if (verbose) cout << "Done. (" << times[4] << " s / " << nsteps[4] << " steps)" << endl;
 
     // 1st+2nd + 1st param deriv
-    ann->enableVariationalFirstDerivative();
+    ann2->enableSecondDerivative();
     if (verbose) cout << endl << "Running benchmark (d1+d2+vd1)..." << endl;
-    times.push_back(propagateBenchmark(ann, nstepsVec[3], true));
-    if (verbose) cout << "Done." << endl;
+    times[5] = propagateBenchmark(ann2, nsteps[5], true);
+    if (verbose) cout << "Done. (" << times[5] << " s / " << nsteps[5] << " steps)" << endl;
 
     return times;
 }
 
-void reportTimes(std::vector<double> &times) {
+void reportTimes(std::array<double, 6> &times, std::array<int, 6> &nsteps) {
     using namespace std;
 
+    std::array<double, 6> evalTimes;
+    for (int i=0; i<6; ++i) evalTimes[i] = times[i]/nsteps[i]*1000.;
+
+    cout << endl;
     cout << "Time per Evaluation" << endl;
     cout << "-------------------" << endl;
-    cout << "noderiv  : " << times[0]*1000 << " ms" << endl;
-    cout << "d1       : " << times[1]*1000 << " ms" << endl;
-    cout << "d1+d2    : " << times[2]*1000 << " ms" << endl;
-    cout << "d1+d2+vd1: " << times[3]*1000 << " ms" << endl;
+    cout << "noderiv  : " << evalTimes[0] << " ms" << endl;
+    cout << "d1       : " << evalTimes[1] << " ms" << endl;
+    cout << "d1+d2    : " << evalTimes[2] << " ms" << endl;
+    cout << "vd1      : " << evalTimes[3] << " ms" << endl;
+    cout << "d1+vd1   : " << evalTimes[4] << " ms" << endl;
+    cout << "d1+d2+vd1: " << evalTimes[5] << " ms" << endl;
+    cout << endl;
 }
 
 #endif

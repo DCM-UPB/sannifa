@@ -29,5 +29,3 @@ link_libraries("${FFNN_LIBRARY_DIR}" "${TORCH_LIBRARIES}") # libs
 add_subdirectory(src) 
 add_subdirectory(test)
 add_subdirectory(benchmark)
-#enable_testing ()
-#add_test (NAME unittests COMMAND run_tests)

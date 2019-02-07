@@ -201,7 +201,7 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
 
     if (doBackward) {
         for (int i=0; i<_noutput; ++i) {
-            outputTensor[i].backward(c10::nullopt, true, true);
+            outputTensor[i].backward(c10::nullopt, true, this->hasSecondDerivative());
 
             if (doParamGrad) { // calc variational derivative
                 int ivpar = 0;
@@ -217,17 +217,18 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
                 copyTensorData(d1Tensor, _currentD1[i]);
 
                 if (this->hasSecondDerivative()) { // requires first deriv, enforced by enable routines
-                    if (doParamGrad) this->_set_requires_grad(false); // disable parameter gradients on further backwards
+                    if (doParamGrad) this->_set_requires_grad(false); // disable parameter gradients on further backwards (slightly faster)
                     for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
                         inputTensor.grad().zero_();
                         d1Tensor[j].backward(c10::nullopt, true, false);
-                        _currentD2[i][j] = inputTensor.grad().data<double>()[j];
+                        _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j];
                     }
-                    if (doParamGrad) this->_set_requires_grad(true);
+                    if (doParamGrad) this->_set_requires_grad(true); // reenable
                 }
                 inputTensor.grad().zero_(); // we zero here for the next output pass
             }
         }
+        if (this->hasSecondDerivative()) inputTensor.grad().detach_(); // else we will leak memory heavily
     }
 }
 

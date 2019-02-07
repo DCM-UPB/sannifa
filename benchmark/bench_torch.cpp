@@ -50,12 +50,18 @@ struct Model: public torch::nn::Module {
 int main() {
     using namespace std;
 
+    // we create two identical wrappers to benchmark
+    // separate derivative branches more easily
+    torch::nn::AnyModule anymodel1(Model(48, 96, 1));
+    TorchNetwork wrapper1(anymodel1, 48, 1);
+
+    torch::nn::AnyModule anymodel2(Model(48, 96, 1));
+    TorchNetwork wrapper2(anymodel2, 48, 1);
+
     // benchmark
-    torch::nn::AnyModule anymodel(Model(48, 96, 1));
-    TorchNetwork wrapper(anymodel, 48, 1);
+    cout << endl << "--- Benchmark with libtorch backend ---" << endl;
+    std::array<int, 6> nsteps {250000, 25000, 2500, 2500, 2500, 1000};
+    auto times = benchmarkDerivatives(&wrapper1, &wrapper2, nsteps, true);
 
-    std::vector<int> nstepsVec {200000, 25000, 1500, 1000};
-    auto times = benchmarkDerivatives(&wrapper, nstepsVec, true);
-
-    reportTimes(times);
+    reportTimes(times, nsteps);
 }
