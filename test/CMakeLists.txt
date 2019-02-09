@@ -5,4 +5,3 @@ add_executable(test_ffnn test_ffnn.cpp)
 target_link_libraries(test_ffnn sannifa)
 
 add_executable(testleak testMemleak.cpp)
-add_executable(testleak2 testMemleak2.cpp)

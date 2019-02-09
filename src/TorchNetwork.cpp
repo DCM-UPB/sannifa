@@ -33,6 +33,16 @@ void TorchNetwork::_set_requires_grad(const bool requires_grad)
     }
 }
 
+void TorchNetwork::_storeVariationalDerivatives(const int iout, const bool flag_zero_grad)
+{   // store computed variational derivatives
+    int ivpar = 0;
+    for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
+        ivpar += copyTensorData(parameterT.grad(), _currentVD1[iout]+ivpar);
+    }
+    if (flag_zero_grad) _torchNN.ptr()->zero_grad(); // zero out model's gradient storage
+}
+
+
 TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput):
     ANNFunctionInterface(ninput, noutput, countParameters(torchNN))
 {
@@ -127,7 +137,6 @@ void TorchNetwork::getVariationalParameters(double * vp)
 
 void TorchNetwork::setVariationalParameter(const int ivp, const double vp)
 {
-    torch::NoGradGuard guard;
     auto flat_tensor = _torchNN.ptr()->parameters(true)[_vparIndex1[ivp]].view(-1);
     auto flat_accessor = flat_tensor.accessor<double,1>();
     flat_accessor[_vparIndex2[ivp]] = vp;
@@ -135,7 +144,6 @@ void TorchNetwork::setVariationalParameter(const int ivp, const double vp)
 
 void TorchNetwork::setVariationalParameters(const double * vp)
 {
-    torch::NoGradGuard guard;
     int ivpar = 0;
     for (auto &parameterT : _torchNN.ptr()->parameters(true)){
         auto flat_tensor = parameterT.view(-1);
@@ -162,7 +170,6 @@ void TorchNetwork::enableFirstDerivative()
 void TorchNetwork::enableSecondDerivative()
 {
     if (this->hasSecondDerivative()) return;
-    this->enableFirstDerivative(); // required
     _currentD2 = new double*[_noutput];
     for (int i=0; i<_noutput; ++i) {
         _currentD2[i] = new double[_ninput];
@@ -194,13 +201,18 @@ void TorchNetwork::enableCrossSecondDerivative()
 
 
 void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
-{
-    // propagate and compute output (if flag_deriv, incl. recording for autodiff)
+{    // propagate and compute output (if flag_deriv, incl. all enabled gradients)
+
+    // control flags
     const bool doBackward = (flag_deriv && this->hasDerivatives());
     const bool doInputGrad = (flag_deriv && this->hasInputDerivatives());
     const bool doParamGrad = (flag_deriv && this->hasVariationalDerivatives());
+    const bool doMultiBackward = (flag_deriv && (this->hasSecondDerivative() || this->hasCrossFirstDerivative()));
 
-    if (doParamGrad) { // enable/disable parameters requires_grad, depending on need
+    // flag indicating separate input/parameter gradient calculations, for better performance
+    const bool doSeparateGrad = (doParamGrad && doMultiBackward && !this->hasCrossFirstDerivative());
+
+    if (doParamGrad) { // enable/disable parameters requires_grad
         this->_set_requires_grad(true);
         _torchNN.ptr()->zero_grad();
     }
@@ -209,45 +221,74 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
     }
 
     double inCopy[_ninput]; // de-const the input to use it in from_blob
-    for (int i=0; i<_ninput; ++i) {inCopy[i] = in[i];}
+    for (int i=0; i<_ninput; ++i) {
+        inCopy[i] = in[i];
+    }
+    auto inputTensor = torch::from_blob(inCopy, {_ninput}, torch::dtype(torch::kFloat64));
 
-    auto inputTensor = torch::from_blob(inCopy, {_ninput},
-        torch::requires_grad(doInputGrad).dtype(torch::kFloat64));
-    auto outputTensor = _torchNN.forward(inputTensor);
+    if (!doSeparateGrad) { // we calculate everything based on a single forward
+        if (doInputGrad) inputTensor.set_requires_grad(true);
+        auto outputTensor = _torchNN.forward(inputTensor).view(-1);
+        copyTensorData(outputTensor, _currentOutput);
 
-    copyTensorData(outputTensor, _currentOutput);
+        if (doBackward) {
+            for (int i=0; i<_noutput; ++i) {
+                outputTensor[i].backward(torch::nullopt, true, doMultiBackward);
 
-    if (doBackward) {
-        for (int i=0; i<_noutput; ++i) {
-            outputTensor[i].backward(c10::nullopt, true, this->hasSecondDerivative());
-
-            if (doParamGrad) { // calc variational derivative
-                int ivpar = 0;
-                for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
-                    auto v1dTensor = parameterT.grad();
-                    ivpar += copyTensorData(v1dTensor, _currentVD1[i]+ivpar);
+                if (this->hasVariationalFirstDerivative()) { // store variational derivative
+                    _storeVariationalDerivatives(i, true); // which also calls zero_grad
                 }
-                _torchNN.ptr()->zero_grad(); // we zero here for the next output pass
-            }
 
-            if (doInputGrad) { // at least first deriv is requested
-                auto d1Tensor = inputTensor.grad().clone();
-                copyTensorData(d1Tensor, _currentD1[i]);
+                if (this->hasFirstDerivative()) {
+                    copyTensorData(inputTensor.grad(), _currentD1[i]); // store first derivative
+                }
 
-                if (this->hasSecondDerivative()) { // requires first deriv, enforced by enable routines
-                    if (doParamGrad) this->_set_requires_grad(false); // disable parameter gradients on further backwards (slightly faster)
+                if (this->hasSecondDerivative()) {
+                    auto d1Tensor = inputTensor.grad().clone();
                     for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
                         inputTensor.grad().zero_();
-                        d1Tensor[j].backward(c10::nullopt, (j<_ninput-1) ? true : false, false);
-                        _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j];
+                        d1Tensor[j].backward(torch::nullopt, true, false);
+                        _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j]; // store second derivative
                     }
-                    if (doParamGrad) this->_set_requires_grad(true); // reenable
                 }
-                inputTensor.grad().zero_(); // we zero here for the next output pass
+
+                if (doInputGrad) inputTensor.grad().zero_(); // we zero here for the next output pass
             }
         }
-        if (this->hasSecondDerivative()) inputTensor.grad().detach_(); // else we will leak memory heavily
     }
+    else { // we do separate forward/backwards for parameters and input gradients
+        inputTensor.set_requires_grad(false); // first pass without input gradients
+        auto outputTensor = _torchNN.forward(inputTensor).view(-1);
+        copyTensorData(outputTensor, _currentOutput); // store output here
+
+        for (int i=0; i<_noutput; ++i) {
+            outputTensor[i].backward(torch::nullopt, true, false);
+            _storeVariationalDerivatives(i, true); // stores gradients and calls zero_grad()
+        }
+
+        this->_set_requires_grad(false); // second pass without param gradients
+        inputTensor.set_requires_grad(true); // but with input gradients
+        outputTensor = _torchNN.forward(inputTensor).view(-1);
+
+        for (int i=0; i<_noutput; ++i) {
+            outputTensor[i].backward(torch::nullopt, true, true);
+
+            auto d1Tensor = inputTensor.grad().clone();
+            if (this->hasFirstDerivative()) {
+                copyTensorData(d1Tensor, _currentD1[i]);
+                inputTensor.grad().zero_(); // we zero here for the multi-backward passes
+            }
+
+            for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
+                d1Tensor[j].backward(torch::nullopt, true, false);
+                _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j];
+                inputTensor.grad().zero_(); // we zero here for the next input or output pass
+            }
+        }
+        this->_set_requires_grad(true); // reenable to restore original state
+    }
+
+    if (doMultiBackward) inputTensor.grad().detach_(); // else we will leak memory heavily
 }
 
 void TorchNetwork::getOutput(double * out)

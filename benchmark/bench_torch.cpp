@@ -50,18 +50,48 @@ struct Model: public torch::nn::Module {
 int main() {
     using namespace std;
 
-    // we create two identical wrappers to benchmark
-    // separate derivative branches more easily
-    torch::nn::AnyModule anymodel1(Model(48, 96, 1));
-    TorchNetwork wrapper1(anymodel1, 48, 1);
+    std::array<torch::nn::AnyModule, 3> ffnnList {
+        torch::nn::AnyModule(Model(6, 12, 1)),
+        torch::nn::AnyModule(Model(24, 48, 1)),
+        torch::nn::AnyModule(Model(96, 192, 1))
+    };
 
-    torch::nn::AnyModule anymodel2(Model(48, 96, 1));
-    TorchNetwork wrapper2(anymodel2, 48, 1);
+    std::array<int, 3> ninputList {6, 24, 96};
 
-    // benchmark
+    std::array<array<int, 6>, 3> nstepsList {
+        std::array<int, 6>({150000, 30000, 4000, 15000, 15000, 3000}),
+        std::array<int, 6>({120000, 30000, 1200, 12000, 12000, 1000}),
+        std::array<int, 6>({100000, 20000, 250, 7500, 7500, 250})
+    };
+
+/*
+    // fast mode
+    for (size_t i=0; i<nstepsList.size(); ++i) {
+        for (size_t j=0; j<nstepsList[i].size(); ++j) {
+            nstepsList[i][j] /= 10;
+        }
+    }
+*/
+
+    std::array<std::string, 3> nameList {
+        "small (6x12x12x1)",
+        "medium (24x48x48x1)",
+        "large (96x192x192x1)"
+    };
+
     cout << endl << "--- Benchmark with libtorch backend ---" << endl;
-    std::array<int, 6> nsteps {250000, 25000, 2500, 2500, 2500, 1000};
-    auto times = benchmarkDerivatives(&wrapper1, &wrapper2, nsteps, true);
+    for (int i=0; i<3; ++i) {
+        // we create two identical wrappers to benchmark
+        // separate derivative branches more easily
+        TorchNetwork wrapper1(ffnnList[i], ninputList[i], 1);
+        TorchNetwork wrapper2(ffnnList[i], ninputList[i], 1);
 
-    reportTimes(times, nsteps);
+        cout << endl << "Benchmarking " << nameList[i] << " FFNN with "
+             << wrapper1.getNVariationalParameters() << " weights..." << endl;
+
+        // benchmark
+        auto times = benchmarkDerivatives(&wrapper1, &wrapper2, nstepsList[i], true);   
+
+        reportTimes(times, nstepsList[i]);
+    }
 }

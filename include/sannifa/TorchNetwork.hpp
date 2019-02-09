@@ -20,7 +20,11 @@ protected:
     double ** _currentD2 = nullptr; // stores last coordinate second derivatives
     double ** _currentVD1 = nullptr; // stores last parameter derivatives
 
-    void _set_requires_grad(const bool requires_grad); // set requires_grad flag on _torchNN.ptr()->parameters()
+    // call set requires_grad flag on _torchNN.ptr()->parameters()
+    void _set_requires_grad(const bool requires_grad);
+
+    // shortcut to store parameters gradients in _currentVD1 and zero out afterwards
+    void _storeVariationalDerivatives(const int iout, const bool flag_zero_grad = true); // iout == output index
 
 public:
     TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput); // we keep just a copy of the torch module
