@@ -2,7 +2,7 @@
 #define FFN_NETWORK
 
 #include "sannifa/ANNFunctionInterface.hpp"
-#include "FeedForwardNeuralNetwork.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
 
 // ANNFunctionInterface wrapper around DCM-UPB/FeedForwardNeuralNetwork
 class FFNNetwork: public ANNFunctionInterface

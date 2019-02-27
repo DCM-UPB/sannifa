@@ -21,7 +21,7 @@ double propagateBenchmark(ANNFunctionInterface * ann, const int nsteps, const bo
     timer->reset();
     for (int i=0; i<nsteps; ++i) {
         for (int j=0; j<ninput; ++j) {
-            inputv[j] = rand();
+            inputv[j] = rand()*(1.0 / RAND_MAX);
         }
         ann->evaluate(inputv, flag_deriv);
     }

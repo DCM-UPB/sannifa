@@ -13,8 +13,8 @@ message(STATUS "Configured FFNN_ROOT: ${FFNN_ROOT}")
 message(STATUS "Configured TORCH_ROOT: ${TORCH_ROOT}")
 
 find_package(Torch REQUIRED HINTS "${TORCH_ROOT}")
-find_path(FFNN_INCLUDE_DIR FeedForwardNeuralNetwork.hpp HINTS "${FFNN_ROOT}/include")
-find_library(FFNN_LIBRARY_DIR ffnn HINTS "${FFNN_ROOT}/lib/.libs")
+find_path(FFNN_INCLUDE_DIR ffnn/net/FeedForwardNeuralNetwork.hpp HINTS "${FFNN_ROOT}/include")
+find_library(FFNN_LIBRARY_DIR ffnn HINTS "${FFNN_ROOT}/build/src")
 find_package_handle_standard_args(libffnn DEFAULT_MSG FFNN_LIBRARY_DIR FFNN_INCLUDE_DIR)
 
 

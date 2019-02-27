@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "FeedForwardNeuralNetwork.hpp"
+#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
 #include "sannifa/FFNNetwork.hpp"
 
 #include "PropagateBenchmark.hpp"
