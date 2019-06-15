@@ -1,4 +1,4 @@
-#include "sannifa/FFNNetwork.hpp"
+#include "sannifa/QPolyNetwork.hpp"
 
 // internal helpers
 
@@ -12,42 +12,42 @@ std::array<int, 3> loadDimensions(const std::string &filename)
 
 // class methods
 
-FFNNetwork::FFNNetwork(FeedForwardNeuralNetwork * ffnn): ANNFunctionInterface(ffnn->getNInput(), ffnn->getNOutput(), ffnn->getNVariationalParameters())
+QPolyNetwork::QPolyNetwork(FeedForwardNeuralNetwork * ffnn): ANNFunctionInterface(ffnn->getNInput(), ffnn->getNOutput(), ffnn->getNVariationalParameters())
 {
     _bareFFNN = new FeedForwardNeuralNetwork(ffnn);
     _derivFFNN = new FeedForwardNeuralNetwork(ffnn);
 }
 
-FFNNetwork::FFNNetwork(const std::string &filename): ANNFunctionInterface(loadDimensions(filename))
+QPolyNetwork::QPolyNetwork(const std::string &filename): ANNFunctionInterface(loadDimensions(filename))
 {
     const char * fname_char = filename.c_str();
     _bareFFNN = new FeedForwardNeuralNetwork(fname_char);
     _derivFFNN = new FeedForwardNeuralNetwork(fname_char);
 }
 
-FFNNetwork::~FFNNetwork()
+QPolyNetwork::~QPolyNetwork()
 {
     delete _bareFFNN;
     delete _derivFFNN;
 }
 
-FeedForwardNeuralNetwork * FFNNetwork::getBareFFNN()
+FeedForwardNeuralNetwork * QPolyNetwork::getBareFFNN()
 {
     return _bareFFNN;
 }
 
-FeedForwardNeuralNetwork * FFNNetwork::getDerivFFNN()
+FeedForwardNeuralNetwork * QPolyNetwork::getDerivFFNN()
 {
     return _derivFFNN;
 }
 
-void FFNNetwork::saveToFile(const std::string &filename)
+void QPolyNetwork::saveToFile(const std::string &filename)
 {
     const char * fname_char = filename.c_str();
     _bareFFNN->storeOnFile(fname_char, true);
 }
 
-void FFNNetwork::printInfo(const bool verbose)
+void QPolyNetwork::printInfo(const bool verbose)
 {
     ANNFunctionInterface::printInfo(verbose);
     /*if (verbose) { // to be done later
@@ -55,60 +55,60 @@ void FFNNetwork::printInfo(const bool verbose)
 }
 
 
-double FFNNetwork::getVariationalParameter(const int ivp)
+double QPolyNetwork::getVariationalParameter(const int ivp)
 {
     return _bareFFNN->getVariationalParameter(ivp);
 }
 
-void FFNNetwork::getVariationalParameters(double * vp)
+void QPolyNetwork::getVariationalParameters(double * vp)
 {
     _bareFFNN->getVariationalParameter(vp);
 }
 
-void FFNNetwork::setVariationalParameter(const int ivp, const double vp)
+void QPolyNetwork::setVariationalParameter(const int ivp, const double vp)
 {
     _bareFFNN->setVariationalParameter(ivp, vp);
     _derivFFNN->setVariationalParameter(ivp, vp);
 }
 
-void FFNNetwork::setVariationalParameters(const double * vp)
+void QPolyNetwork::setVariationalParameters(const double * vp)
 {
     _bareFFNN->setVariationalParameter(vp);
     _derivFFNN->setVariationalParameter(vp);
 }
 
 
-void FFNNetwork::enableFirstDerivative()
+void QPolyNetwork::enableFirstDerivative()
 {
     _derivFFNN->addFirstDerivativeSubstrate();
     _enableFirstDerivative();
 }
 
-void FFNNetwork::enableSecondDerivative()
+void QPolyNetwork::enableSecondDerivative()
 {
     _derivFFNN->addSecondDerivativeSubstrate();
     _enableSecondDerivative();
 }
 
-void FFNNetwork::enableVariationalFirstDerivative()
+void QPolyNetwork::enableVariationalFirstDerivative()
 {
     _derivFFNN->addVariationalFirstDerivativeSubstrate();
     _enableVariationalFirstDerivative();
 }
 
-void FFNNetwork::enableCrossFirstDerivative()
+void QPolyNetwork::enableCrossFirstDerivative()
 {
     _derivFFNN->addCrossFirstDerivativeSubstrate();
     _enableCrossFirstDerivative();
 }
 
-void FFNNetwork::enableCrossSecondDerivative()
+void QPolyNetwork::enableCrossSecondDerivative()
 {
     _derivFFNN->addCrossSecondDerivativeSubstrate();
     _enableCrossSecondDerivative();
 }
 
-void FFNNetwork::evaluate(const double * in, const bool flag_deriv)
+void QPolyNetwork::evaluate(const double * in, const bool flag_deriv)
 {
     FeedForwardNeuralNetwork * ffnnToUse = flag_deriv ? _derivFFNN : _bareFFNN;
     ffnnToUse->setInput(in);
@@ -117,7 +117,7 @@ void FFNNetwork::evaluate(const double * in, const bool flag_deriv)
 }
 
 
-void FFNNetwork::getOutput(double * out)
+void QPolyNetwork::getOutput(double * out)
 {
     if (_flag_deriv){
         _derivFFNN->getOutput(out);
@@ -127,7 +127,7 @@ void FFNNetwork::getOutput(double * out)
     }
 }
 
-double FFNNetwork::getOutput(const int i)
+double QPolyNetwork::getOutput(const int i)
 {
     if (_flag_deriv){
         return _derivFFNN->getOutput(i);
@@ -137,77 +137,77 @@ double FFNNetwork::getOutput(const int i)
     }
 }
 
-void FFNNetwork::getFirstDerivative(double ** d1)
+void QPolyNetwork::getFirstDerivative(double ** d1)
 {
     _derivFFNN->getFirstDerivative(d1);
 }
 
-void FFNNetwork::getFirstDerivative(const int iout, double * d1)
+void QPolyNetwork::getFirstDerivative(const int iout, double * d1)
 {
     _derivFFNN->getFirstDerivative(iout, d1);
 }
 
-double FFNNetwork::getFirstDerivative(const int iout, const int i1d)
+double QPolyNetwork::getFirstDerivative(const int iout, const int i1d)
 {
     return _derivFFNN->getFirstDerivative(iout, i1d);
 }
 
-void FFNNetwork::getSecondDerivative(double ** d2)
+void QPolyNetwork::getSecondDerivative(double ** d2)
 {
     _derivFFNN->getSecondDerivative(d2);
 }
 
-void FFNNetwork::getSecondDerivative(const int iout, double * d2)
+void QPolyNetwork::getSecondDerivative(const int iout, double * d2)
 {
     _derivFFNN->getSecondDerivative(iout, d2);
 }
 
-double FFNNetwork::getSecondDerivative(const int iout, const int i2d)
+double QPolyNetwork::getSecondDerivative(const int iout, const int i2d)
 {
     return _derivFFNN->getSecondDerivative(iout, i2d);
 }
 
-void FFNNetwork::getVariationalFirstDerivative(double ** vd1)
+void QPolyNetwork::getVariationalFirstDerivative(double ** vd1)
 {
     _derivFFNN->getVariationalFirstDerivative(vd1);
 }
 
-void FFNNetwork::getVariationalFirstDerivative(const int iout, double * vd1)
+void QPolyNetwork::getVariationalFirstDerivative(const int iout, double * vd1)
 {
     _derivFFNN->getVariationalFirstDerivative(iout, vd1);
 }
 
-double FFNNetwork::getVariationalFirstDerivative(const int iout, const int iv1d)
+double QPolyNetwork::getVariationalFirstDerivative(const int iout, const int iv1d)
 {
     return _derivFFNN->getVariationalFirstDerivative(iout, iv1d);
 }
 
-void FFNNetwork::getCrossFirstDerivative(double *** d1vd1)
+void QPolyNetwork::getCrossFirstDerivative(double *** d1vd1)
 {
     _derivFFNN->getCrossFirstDerivative(d1vd1);
 }
 
-void FFNNetwork::getCrossFirstDerivative(const int iout, double ** d1vd1)
+void QPolyNetwork::getCrossFirstDerivative(const int iout, double ** d1vd1)
 {
     _derivFFNN->getCrossFirstDerivative(iout, d1vd1);
 }
 
-double FFNNetwork::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d)
+double QPolyNetwork::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d)
 {
     return _derivFFNN->getCrossFirstDerivative(iout, i1d, iv1d);
 }
 
-void FFNNetwork::getCrossSecondDerivative(double *** d2vd1)
+void QPolyNetwork::getCrossSecondDerivative(double *** d2vd1)
 {
     _derivFFNN->getCrossSecondDerivative(d2vd1);
 }
 
-void FFNNetwork::getCrossSecondDerivative(const int iout, double ** d2vd1)
+void QPolyNetwork::getCrossSecondDerivative(const int iout, double ** d2vd1)
 {
     _derivFFNN->getCrossSecondDerivative(iout, d2vd1);
 }
 
-double FFNNetwork::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d)
+double QPolyNetwork::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d)
 {
     return _derivFFNN->getCrossSecondDerivative(iout, i2d, iv1d);
 }

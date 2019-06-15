@@ -1,11 +1,11 @@
-#ifndef FFN_NETWORK
-#define FFN_NETWORK
+#ifndef QPOLY_NETWORK
+#define QPOLY_NETWORK
 
 #include "sannifa/ANNFunctionInterface.hpp"
-#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
+#include "qnets/poly/FeedForwardNeuralNetwork.hpp"
 
-// ANNFunctionInterface wrapper around DCM-UPB/FeedForwardNeuralNetwork
-class FFNNetwork: public ANNFunctionInterface
+// ANNFunctionInterface wrapper around DCM-UPB/QNets PolyNet
+class QPolyNetwork: public ANNFunctionInterface
 {
 private:
     FeedForwardNeuralNetwork * _bareFFNN = nullptr; // the network used for simple evaluation (no derivatives)
@@ -13,10 +13,10 @@ private:
     bool _flag_deriv = false; // was the last evaluation with derivFFNN?
 
 public:
-    FFNNetwork(FeedForwardNeuralNetwork * ffnn); // we keep just a copy of the ffnn object
-    explicit FFNNetwork(const std::string &filename); // load from file
+    QPolyNetwork(FeedForwardNeuralNetwork * ffnn); // we keep just a copy of the ffnn object
+    explicit QPolyNetwork(const std::string &filename); // load from file
 
-    ~FFNNetwork(); // and delete the copy here
+    ~QPolyNetwork(); // and delete the copy here
 
     FeedForwardNeuralNetwork * getBareFFNN();
     FeedForwardNeuralNetwork * getDerivFFNN();
