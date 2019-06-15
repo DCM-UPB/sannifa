@@ -5,62 +5,62 @@
 #include "qnets/poly/FeedForwardNeuralNetwork.hpp"
 
 // ANNFunctionInterface wrapper around DCM-UPB/QNets PolyNet
-class QPolyNetwork: public ANNFunctionInterface
+class QPolyNetwork final: public ANNFunctionInterface
 {
 private:
     FeedForwardNeuralNetwork * _bareFFNN = nullptr; // the network used for simple evaluation (no derivatives)
     FeedForwardNeuralNetwork * _derivFFNN = nullptr; // and the one that also computes derivatives
     bool _flag_deriv = false; // was the last evaluation with derivFFNN?
 
+    void _enableFirstDerivative() final { _derivFFNN->addFirstDerivativeSubstrate(); }
+    void _enableSecondDerivative() final { _derivFFNN->addSecondDerivativeSubstrate(); }
+    void _enableVariationalFirstDerivative() final { _derivFFNN->addVariationalFirstDerivativeSubstrate(); }
+    void _enableCrossFirstDerivative() final { _derivFFNN->addCrossFirstDerivativeSubstrate(); }
+    void _enableCrossSecondDerivative() final { _derivFFNN->addCrossSecondDerivativeSubstrate(); }
+
 public:
-    QPolyNetwork(FeedForwardNeuralNetwork * ffnn); // we keep just a copy of the ffnn object
+    explicit QPolyNetwork(const FeedForwardNeuralNetwork &ffnn); // we keep just a copy of the ffnn object
     explicit QPolyNetwork(const std::string &filename); // load from file
 
-    ~QPolyNetwork(); // and delete the copy here
+    ~QPolyNetwork() final; // and delete the copy here
 
-    FeedForwardNeuralNetwork * getBareFFNN();
-    FeedForwardNeuralNetwork * getDerivFFNN();
+    const FeedForwardNeuralNetwork &getBareFFNN() const { return *_bareFFNN; }
+    const FeedForwardNeuralNetwork &getDerivFFNN() const { return *_derivFFNN; }
 
-    void saveToFile(const std::string &filename);
+    void saveToFile(const std::string &filename) const final;
 
-    void printInfo(const bool verbose = false); // add backend specific print, if verbose
-    std::string getLibName(){return "libffnn";}
+    void printInfo(bool verbose) const final; // add backend specific print, if verbose
+    std::string getLibName() const final {return "libffnn";}
 
-    double getVariationalParameter(const int ivp);
-    void getVariationalParameters(double * vp);
-    void setVariationalParameter(const int ivp, const double vp);
-    void setVariationalParameters(const double * vp);
+    double getVariationalParameter(int ivp) const final { return _bareFFNN->getVariationalParameter(ivp); }
+    void getVariationalParameters(double vp[]) const final { _bareFFNN->getVariationalParameter(vp); }
+    void setVariationalParameter(int ivp, double vp) final;
+    void setVariationalParameters(const double vp[]) final;
 
-    void enableFirstDerivative();
-    void enableSecondDerivative();
-    void enableVariationalFirstDerivative();
-    void enableCrossFirstDerivative();
-    void enableCrossSecondDerivative();
+    void evaluate(const double in[], bool flag_deriv) final;
 
-    void evaluate(const double * in, const bool flag_deriv = false);
+    void getOutput(double out[]) const final;
+    double getOutput(int i) const final;
 
-    void getOutput(double * out);
-    double getOutput(const int i);
+    void getFirstDerivative(double d1[]) const final;
+    void getFirstDerivative(int iout, double d1[]) const final { _derivFFNN->getFirstDerivative(iout, d1); }
+    double getFirstDerivative(int iout, int i1d) const final { return _derivFFNN->getFirstDerivative(iout, i1d); }
 
-    void getFirstDerivative(double ** d1);
-    void getFirstDerivative(const int iout, double * d1);
-    double getFirstDerivative(const int iout, const int i1d);
+    void getSecondDerivative(double d2[]) const final;
+    void getSecondDerivative(int iout, double d2[]) const final { _derivFFNN->getSecondDerivative(iout, d2); }
+    double getSecondDerivative(int iout, int i2d) const final { return _derivFFNN->getSecondDerivative(iout, i2d); }
 
-    void getSecondDerivative(double ** d2);
-    void getSecondDerivative(const int iout, double * d2);
-    double getSecondDerivative(const int iout, const int i2d);
+    void getVariationalFirstDerivative(double vd1[]) const final;
+    void getVariationalFirstDerivative(int iout, double vd1[]) const final { _derivFFNN->getVariationalFirstDerivative(iout, vd1); }
+    double getVariationalFirstDerivative(int iout, int iv1d) const final { return _derivFFNN->getVariationalFirstDerivative(iout, iv1d); }
 
-    void getVariationalFirstDerivative(double ** vd1);
-    void getVariationalFirstDerivative(const int iout, double * vd1);
-    double getVariationalFirstDerivative(const int iout, const int iv1d);
+    void getCrossFirstDerivative(double d1vd1[]) const final;
+    void getCrossFirstDerivative(int iout, double d1vd1[]) const final;
+    double getCrossFirstDerivative(int iout, int i1d, int iv1d) const final { return _derivFFNN->getCrossFirstDerivative(iout, i1d, iv1d); }
 
-    void getCrossFirstDerivative(double *** d1vd1);
-    void getCrossFirstDerivative(const int iout, double ** d1vd1);
-    double getCrossFirstDerivative(const int iout, const int i1d, const int iv1d);
-
-    void getCrossSecondDerivative(double *** d2vd1);
-    void getCrossSecondDerivative(const int iout, double ** d2vd1);
-    double getCrossSecondDerivative(const int iout, const int i2d, const int iv1d);
+    void getCrossSecondDerivative(double d2vd1[]) const final;
+    void getCrossSecondDerivative(int iout, double d2vd1[]) const final;
+    double getCrossSecondDerivative(int iout, int i2d, int iv1d) const final { return _derivFFNN->getCrossSecondDerivative(iout, i2d, iv1d); }
 };
 
 

@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include <functional>
+#include <algorithm>
 #include <exception>
 
 #include <iostream>
@@ -9,18 +10,18 @@
 int countParameters(const torch::nn::AnyModule &model)
 {
     int ret = 0;
-    for (auto &parameterT : model.ptr()->parameters(true)){
+    for (auto &parameterT : model.ptr()->parameters(true)) {
         ret += parameterT.numel();
     }
     return ret;
 }
 
-int copyTensorData(torch::Tensor &tensor, double * out)
+int copyTensorData(torch::Tensor &tensor, double out[])
 {
     const int nvpar = tensor.numel();
     auto flat_tensor = tensor.view(-1);
-    auto flat_accessor =  flat_tensor.accessor<double,1>();
-    for (int i=0; i<nvpar; ++i) {
+    auto flat_accessor = flat_tensor.accessor<double, 1>();
+    for (int i = 0; i < nvpar; ++i) {
         out[i] = flat_accessor[i];
     }
     return nvpar;
@@ -37,14 +38,14 @@ void TorchNetwork::_storeVariationalDerivatives(const int iout, const bool flag_
 {   // store computed variational derivatives
     int ivpar = 0;
     for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
-        ivpar += copyTensorData(parameterT.grad(), _currentVD1[iout]+ivpar);
+        ivpar += copyTensorData(parameterT.grad(), _currentVD1 + iout*_nvpar + ivpar);
     }
-    if (flag_zero_grad) _torchNN.ptr()->zero_grad(); // zero out model's gradient storage
+    if (flag_zero_grad) { _torchNN.ptr()->zero_grad(); } // zero out model's gradient storage
 }
 
 
 TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput):
-    ANNFunctionInterface(ninput, noutput, countParameters(torchNN))
+        ANNFunctionInterface(ninput, noutput, countParameters(torchNN))
 {
     _torchNN = torchNN.clone();
 
@@ -54,10 +55,10 @@ TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput
     _vparIndex2 = new int[_nvpar];
     int ivpar = 0;
     int ivector = 0;
-    for (auto &parameterT : _torchNN.ptr()->parameters(true)){
+    for (auto &parameterT : _torchNN.ptr()->parameters(true)) {
         auto flat_tensor = parameterT.view(-1);
-        auto flat_accessor =  flat_tensor.accessor<double,1>();
-        for (int itensor=0; itensor<flat_accessor.size(0); ++itensor) {
+        auto flat_accessor = flat_tensor.accessor<double, 1>();
+        for (int itensor = 0; itensor < flat_accessor.size(0); ++itensor) {
             _vparIndex1[ivpar] = ivector;
             _vparIndex2[ivpar] = itensor;
             ++ivpar;
@@ -66,47 +67,44 @@ TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput
     }
 
     _currentOutput = new double[_noutput];
-    for (int i=0; i<_noutput; ++i) {
+    for (int i = 0; i < _noutput; ++i) {
         _currentOutput[i] = 0.;
     }
 }
 
 TorchNetwork::~TorchNetwork()
 {
-    delete [] _vparIndex1;
-    delete [] _vparIndex2;
-    delete [] _currentOutput;
+    delete[] _vparIndex1;
+    delete[] _vparIndex2;
+    delete[] _currentOutput;
 
     if (this->hasFirstDerivative()) {
-        for (int i=0; i<_noutput; ++i) delete [] _currentD1[i];
-        delete [] _currentD1;
+        delete[] _currentD1;
     }
     if (this->hasSecondDerivative()) {
-        for (int i=0; i<_noutput; ++i) delete [] _currentD2[i];
-        delete [] _currentD2;
+        delete[] _currentD2;
     }
     if (this->hasVariationalFirstDerivative()) {
-        for (int i=0; i<_noutput; ++i) delete [] _currentVD1[i];
-        delete [] _currentVD1;
+        delete[] _currentVD1;
     }
 }
 
-torch::nn::AnyModule * TorchNetwork::getTorchNN()
+const torch::nn::AnyModule &TorchNetwork::getTorchNN() const
 {
-    return &_torchNN;
+    return _torchNN;
 }
 
-void TorchNetwork::saveToFile(const std::string &filename)
+void TorchNetwork::saveToFile(const std::string &filename) const
 {
     torch::save(_torchNN.ptr(), filename);
 }
 
-void TorchNetwork::printInfo(const bool verbose)
+void TorchNetwork::printInfo(const bool verbose) const
 {
     using namespace std;
     ANNFunctionInterface::printInfo(verbose);
     if (verbose) {
-        ostream & oStream = cout;
+        ostream &oStream = cout;
         oStream << endl;
         oStream << "PyTorch NN Info:" << endl;
         _torchNN.ptr()->pretty_print(oStream);
@@ -115,20 +113,20 @@ void TorchNetwork::printInfo(const bool verbose)
 }
 
 
-double TorchNetwork::getVariationalParameter(const int ivp)
+double TorchNetwork::getVariationalParameter(const int ivp) const
 {
     auto flat_tensor = _torchNN.ptr()->parameters(true)[_vparIndex1[ivp]].view(-1);
-    auto flat_accessor = flat_tensor.accessor<double,1>();
+    auto flat_accessor = flat_tensor.accessor<double, 1>();
     return flat_accessor[_vparIndex2[ivp]];
 }
 
-void TorchNetwork::getVariationalParameters(double * vp)
+void TorchNetwork::getVariationalParameters(double vp[]) const
 {
     int ivpar = 0;
-    for (auto &parameterT : _torchNN.ptr()->parameters(true)){
+    for (auto &parameterT : _torchNN.ptr()->parameters(true)) {
         auto flat_tensor = parameterT.view(-1);
-        auto flat_accessor = flat_tensor.accessor<double,1>();
-        for (int i=0; i<flat_accessor.size(0); ++i) {
+        auto flat_accessor = flat_tensor.accessor<double, 1>();
+        for (int i = 0; i < flat_accessor.size(0); ++i) {
             vp[ivpar] = flat_accessor[i];
             ++ivpar;
         }
@@ -138,17 +136,17 @@ void TorchNetwork::getVariationalParameters(double * vp)
 void TorchNetwork::setVariationalParameter(const int ivp, const double vp)
 {
     auto flat_tensor = _torchNN.ptr()->parameters(true)[_vparIndex1[ivp]].view(-1);
-    auto flat_accessor = flat_tensor.accessor<double,1>();
+    auto flat_accessor = flat_tensor.accessor<double, 1>();
     flat_accessor[_vparIndex2[ivp]] = vp;
 }
 
-void TorchNetwork::setVariationalParameters(const double * vp)
+void TorchNetwork::setVariationalParameters(const double vp[])
 {
     int ivpar = 0;
-    for (auto &parameterT : _torchNN.ptr()->parameters(true)){
+    for (auto &parameterT : _torchNN.ptr()->parameters(true)) {
         auto flat_tensor = parameterT.view(-1);
-        auto flat_accessor = flat_tensor.accessor<double,1>();
-        for (int i=0; i<flat_accessor.size(0); ++i) {
+        auto flat_accessor = flat_tensor.accessor<double, 1>();
+        for (int i = 0; i < flat_accessor.size(0); ++i) {
             flat_accessor[i] = vp[ivpar];
             ++ivpar;
         }
@@ -156,51 +154,39 @@ void TorchNetwork::setVariationalParameters(const double * vp)
 }
 
 
-void TorchNetwork::enableFirstDerivative()
+void TorchNetwork::_enableFirstDerivative()
 {
-    if (this->hasFirstDerivative()) return;
-    _currentD1 = new double*[_noutput];
-    for (int i=0; i<_noutput; ++i) {
-        _currentD1[i] = new double[_ninput];
-        for (int j=0; j<_ninput; ++j) _currentD1[i][j] = 0.;
-    }
-    _enableFirstDerivative();
+    if (this->hasFirstDerivative()) { return; }
+    _currentD1 = new double[_noutput*_ninput];
+    std::fill(_currentD1, _currentD1 + _noutput*_ninput, 0.);
 }
 
-void TorchNetwork::enableSecondDerivative()
+void TorchNetwork::_enableSecondDerivative()
 {
-    if (this->hasSecondDerivative()) return;
-    _currentD2 = new double*[_noutput];
-    for (int i=0; i<_noutput; ++i) {
-        _currentD2[i] = new double[_ninput];
-        for (int j=0; j<_ninput; ++j) _currentD2[i][j] = 0.;
-    }
-    _enableSecondDerivative();
+    if (this->hasSecondDerivative()) { return; }
+    _currentD2 = new double[_noutput*_ninput];
+    std::fill(_currentD2, _currentD2 + _noutput*_ninput, 0.);
 }
 
-void TorchNetwork::enableVariationalFirstDerivative()
+void TorchNetwork::_enableVariationalFirstDerivative()
 {
-    if (this->hasVariationalFirstDerivative()) return;
-    _currentVD1 = new double*[_noutput];
-    for (int i=0; i<_noutput; ++i) {
-        _currentVD1[i] = new double[_nvpar];
-        for (int j=0; j<_nvpar; ++j) _currentVD1[i][j] = 0.;
-    }
-    _enableVariationalFirstDerivative();
+    if (this->hasVariationalFirstDerivative()) { return; }
+    _currentVD1 = new double[_noutput*_nvpar];
+    std::fill(_currentVD1, _currentVD1 + _noutput*_nvpar, 0.);
 }
 
-void TorchNetwork::enableCrossFirstDerivative()
+void TorchNetwork::_enableCrossFirstDerivative()
 {
-    throw "CrossFirstDerivative not implemented yet in TorchNetwork.";
+    throw std::runtime_error("CrossFirstDerivative not implemented yet in TorchNetwork.");
 }
 
-void TorchNetwork::enableCrossSecondDerivative()
+void TorchNetwork::_enableCrossSecondDerivative()
 {
-    throw "CrossSecondDerivative not implemented yet in TorchNetwork.";
+    throw std::runtime_error("CrossSecondDerivative not implemented yet in TorchNetwork.");
 }
 
 
-void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
+void TorchNetwork::evaluate(const double in[], const bool flag_deriv)
 {    // propagate and compute output (if flag_deriv, incl. all enabled gradients)
 
     // control flags
@@ -221,18 +207,18 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
     }
 
     double inCopy[_ninput]; // de-const the input to use it in from_blob
-    for (int i=0; i<_ninput; ++i) {
+    for (int i = 0; i < _ninput; ++i) {
         inCopy[i] = in[i];
     }
     auto inputTensor = torch::from_blob(inCopy, {_ninput}, torch::dtype(torch::kFloat64));
 
     if (!doSeparateGrad) { // we calculate everything based on a single forward
-        if (doInputGrad) inputTensor.set_requires_grad(true);
+        if (doInputGrad) { inputTensor.set_requires_grad(true); }
         auto outputTensor = _torchNN.forward(inputTensor).view(-1);
         copyTensorData(outputTensor, _currentOutput);
 
         if (doBackward) {
-            for (int i=0; i<_noutput; ++i) {
+            for (int i = 0; i < _noutput; ++i) {
                 outputTensor[i].backward(torch::nullopt, true, doMultiBackward);
 
                 if (this->hasVariationalFirstDerivative()) { // store variational derivative
@@ -240,19 +226,19 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
                 }
 
                 if (this->hasFirstDerivative()) {
-                    copyTensorData(inputTensor.grad(), _currentD1[i]); // store first derivative
+                    copyTensorData(inputTensor.grad(), _currentD1 + i*_ninput); // store first derivative
                 }
 
                 if (this->hasSecondDerivative()) {
                     auto d1Tensor = inputTensor.grad().clone();
-                    for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
+                    for (int j = 0; j < _ninput; ++j) {  // compute hessian diagonal elements
                         inputTensor.grad().zero_();
                         d1Tensor[j].backward(torch::nullopt, true, false);
-                        _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j]; // store second derivative
+                        _currentD2[i*_ninput + j] = inputTensor.grad().accessor<double, 1>()[j]; // store second derivative
                     }
                 }
 
-                if (doInputGrad) inputTensor.grad().zero_(); // we zero here for the next output pass
+                if (doInputGrad) { inputTensor.grad().zero_(); } // we zero here for the next output pass
             }
         }
     }
@@ -261,7 +247,7 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
         auto outputTensor = _torchNN.forward(inputTensor).view(-1);
         copyTensorData(outputTensor, _currentOutput); // store output here
 
-        for (int i=0; i<_noutput; ++i) {
+        for (int i = 0; i < _noutput; ++i) {
             outputTensor[i].backward(torch::nullopt, true, false);
             _storeVariationalDerivatives(i, true); // stores gradients and calls zero_grad()
         }
@@ -270,115 +256,86 @@ void TorchNetwork::evaluate(const double * in, const bool flag_deriv)
         inputTensor.set_requires_grad(true); // but with input gradients
         outputTensor = _torchNN.forward(inputTensor).view(-1);
 
-        for (int i=0; i<_noutput; ++i) {
+        for (int i = 0; i < _noutput; ++i) {
             outputTensor[i].backward(torch::nullopt, true, true);
 
             auto d1Tensor = inputTensor.grad().clone();
             if (this->hasFirstDerivative()) {
-                copyTensorData(d1Tensor, _currentD1[i]);
+                copyTensorData(d1Tensor, _currentD1 + i*_ninput);
                 inputTensor.grad().zero_(); // we zero here for the multi-backward passes
             }
 
-            for (int j=0; j<_ninput; ++j) {  // compute hessian diagonal elements
+            for (int j = 0; j < _ninput; ++j) {  // compute hessian diagonal elements
                 d1Tensor[j].backward(torch::nullopt, true, false);
-                _currentD2[i][j] = inputTensor.grad().accessor<double,1>()[j];
+                _currentD2[i*_ninput + j] = inputTensor.grad().accessor<double, 1>()[j];
                 inputTensor.grad().zero_(); // we zero here for the next input or output pass
             }
         }
         this->_set_requires_grad(true); // reenable to restore original state
     }
 
-    if (doMultiBackward) inputTensor.grad().detach_(); // else we will leak memory heavily
+    if (doMultiBackward) { inputTensor.grad().detach_(); } // else we will leak memory heavily
 }
 
-void TorchNetwork::getOutput(double * out)
+void TorchNetwork::getOutput(double out[]) const
 {
-    for (int i=0; i<_noutput; ++i)  out[i] = _currentOutput[i];
+    for (int i = 0; i < _noutput; ++i) { out[i] = _currentOutput[i]; }
 }
 
-double TorchNetwork::getOutput(const int i)
+double TorchNetwork::getOutput(const int i) const
 {
     return _currentOutput[i];
 }
 
-void TorchNetwork::getFirstDerivative(double ** d1)
+void TorchNetwork::getFirstDerivative(double d1[]) const
 {
-    for (int i=0; i<_noutput; ++i) {
-        for (int j=0; j<_ninput; ++j) d1[i][j] = _currentD1[i][j];
-    }
+    std::copy(_currentD1, _currentD1 + _noutput*_ninput, d1);
 }
 
-void TorchNetwork::getFirstDerivative(const int iout, double * d1)
+void TorchNetwork::getFirstDerivative(const int iout, double d1[]) const
 {
-    for (int j=0; j<_ninput; ++j) d1[j] = _currentD1[iout][j];
+    for (int j = 0; j < _ninput; ++j) { d1[j] = _currentD1[iout*_ninput + j]; }
 }
 
-double TorchNetwork::getFirstDerivative(const int iout, const int i1d)
+double TorchNetwork::getFirstDerivative(const int iout, const int i1d) const
 {
-    return _currentD1[iout][i1d];
+    return _currentD1[iout*_ninput + i1d];
 }
 
-void TorchNetwork::getSecondDerivative(double ** d2)
+void TorchNetwork::getSecondDerivative(double d2[]) const
 {
-    for (int i=0; i<_noutput; ++i) {
-        for (int j=0; j<_ninput; ++j) d2[i][j] = _currentD2[i][j];
-    }
+    std::copy(_currentD2, _currentD2 + _noutput*_ninput, d2);
 }
 
-void TorchNetwork::getSecondDerivative(const int iout, double * d2)
+void TorchNetwork::getSecondDerivative(const int iout, double d2[]) const
 {
-    for (int j=0; j<_ninput; ++j) d2[j] = _currentD2[iout][j];
+    for (int j = 0; j < _ninput; ++j) { d2[j] = _currentD2[iout*_ninput + j]; }
 }
 
-double TorchNetwork::getSecondDerivative(const int iout, const int i2d)
+double TorchNetwork::getSecondDerivative(const int iout, const int i2d) const
 {
-    return _currentD2[iout][i2d];
+    return _currentD2[iout*_ninput + i2d];
 }
 
-void TorchNetwork::getVariationalFirstDerivative(double ** vd1)
+void TorchNetwork::getVariationalFirstDerivative(double vd1[]) const
 {
-    for (int i=0; i<_noutput; ++i) {
-        for (int j=0; j<_nvpar; ++j) vd1[i][j] = _currentVD1[i][j];
-    }
-
+    std::copy(_currentVD1, _currentVD1 + _noutput*_nvpar, vd1);
 }
 
-void TorchNetwork::getVariationalFirstDerivative(const int iout, double * vd1)
+void TorchNetwork::getVariationalFirstDerivative(const int iout, double vd1[]) const
 {
-    for (int j=0; j<_nvpar; ++j) vd1[j] = _currentVD1[iout][j];
+    for (int j = 0; j < _nvpar; ++j) { vd1[j] = _currentVD1[iout*_nvpar + j]; }
 }
 
-double TorchNetwork::getVariationalFirstDerivative(const int iout, const int iv1d)
+double TorchNetwork::getVariationalFirstDerivative(const int iout, const int iv1d) const
 {
-    return _currentVD1[iout][iv1d];
+    return _currentVD1[iout*_nvpar + iv1d];
 }
 
-void TorchNetwork::getCrossFirstDerivative(double *** d1vd1)
-{
-    return;
-}
+void TorchNetwork::getCrossFirstDerivative(double d1vd1[]) const {}
+void TorchNetwork::getCrossFirstDerivative(const int iout, double d1vd1[]) const {}
+double TorchNetwork::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d) const { return 0.; }
 
-void TorchNetwork::getCrossFirstDerivative(const int iout, double ** d1vd1)
-{
-    return;
-}
-
-double TorchNetwork::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d)
-{
-    return 0.;
-}
-
-void TorchNetwork::getCrossSecondDerivative(double *** d2vd1)
-{
-    return;
-}
-
-void TorchNetwork::getCrossSecondDerivative(const int iout, double ** d2vd1)
-{
-    return;
-}
-
-double TorchNetwork::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d)
-{
-    return 0.;
-}
+void TorchNetwork::getCrossSecondDerivative(double d2vd1[]) const {}
+void TorchNetwork::getCrossSecondDerivative(const int iout, double d2vd1[]) const {}
+double TorchNetwork::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d) const { return 0.; }

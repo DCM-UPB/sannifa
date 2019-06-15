@@ -21,87 +21,90 @@ private:
 protected:
     const int _ninput, _noutput, _nvpar;
 
-    void _enableFirstDerivative(){_dopt.d1 = true;}
-    void _enableSecondDerivative(){_dopt.d2 = true;}
-    void _enableVariationalFirstDerivative(){_dopt.vd1 = true;}
-    void _enableCrossFirstDerivative(){_dopt.cd1 = true;}
-    void _enableCrossSecondDerivative(){_dopt.cd2 = true;}
+    // child routines to setup appropriate derivative calculation
+    virtual void _enableFirstDerivative() = 0;
+    virtual void _enableSecondDerivative() = 0;
+    virtual void _enableVariationalFirstDerivative() = 0;
+    virtual void _enableCrossFirstDerivative() = 0;
+    virtual void _enableCrossSecondDerivative() = 0;
 
 public:
     ANNFunctionInterface(const int ninput, const int noutput, const int nvpar):
         _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
-    ANNFunctionInterface(const std::array<int, 3> &dimensions):
+    explicit ANNFunctionInterface(const std::array<int, 3> &dimensions):
         _ninput(dimensions[0]), _noutput(dimensions[1]), _nvpar(dimensions[2]) {}
     // if possible, the following constructor should be implemented in child:
     // ChildNetwork(const std::string &filename): ANNFunctionInterface(_loadDimensions(filename)) {...};
-    virtual ~ANNFunctionInterface(){}
+    virtual ~ANNFunctionInterface() = default;
 
     // --- store to file ---
-    virtual void saveToFile(const std::string &filename) = 0; // save to a loadable file
+    virtual void saveToFile(const std::string &filename) const = 0; // save to a loadable file
 
     // --- Get general information about the ANN-function
-    virtual void printInfo(const bool verbose = false); // can be overriden by child, but should still be called by the override
-    virtual std::string getLibName() = 0; // should return a string that identifies the used backend lib
+    virtual void printInfo(bool verbose) const; // can be overriden, but should still be called
+    void printInfo() const { this->printInfo(false); } // default
+    virtual std::string getLibName() const = 0; // should return a string that identifies the used backend lib
 
-    int getNInput(){return _ninput;}
-    int getNOutput(){return _noutput;}
-    int getNVariationalParameters(){return _nvpar;}
+    int getNInput() const {return _ninput;}
+    int getNOutput() const {return _noutput;}
+    int getNVariationalParameters() const {return _nvpar;}
 
-    bool hasDerivatives(); // true if any of the below yields true
-    bool hasInputDerivatives(); // true if any input derivatives is present
-    bool hasVariationalDerivatives(); // true if any parameter derivatives is present
-    bool hasFirstDerivative(){return _dopt.d1;}
-    bool hasSecondDerivative(){return _dopt.d2;}
-    bool hasVariationalFirstDerivative(){return _dopt.vd1;}
-    bool hasCrossFirstDerivative(){return _dopt.cd1;}
-    bool hasCrossSecondDerivative(){return _dopt.cd2;}
+    bool hasDerivatives() const; // true if any of the below yields true
+    bool hasInputDerivatives() const; // true if any input derivatives is present
+    bool hasVariationalDerivatives() const; // true if any parameter derivatives is present
+    bool hasFirstDerivative() const {return _dopt.d1;}
+    bool hasSecondDerivative() const {return _dopt.d2;}
+    bool hasVariationalFirstDerivative() const {return _dopt.vd1;}
+    bool hasCrossFirstDerivative() const {return _dopt.cd1;}
+    bool hasCrossSecondDerivative() const {return _dopt.cd2;}
 
     // --- Manage the variational parameters (which may contain a subset of network weights and/or other parameters)
-    virtual double getVariationalParameter(const int ivp) = 0;
-    virtual void getVariationalParameters(double * vp) = 0;
-    virtual void setVariationalParameter(const int ivp, const double vp) = 0;
-    virtual void setVariationalParameters(const double * vp) = 0;
+    virtual double getVariationalParameter(int ivp) const = 0;
+    virtual void getVariationalParameters(double vp[]) const = 0;
+    virtual void setVariationalParameter(int ivp, double vp) = 0;
+    virtual void setVariationalParameters(const double vp[]) = 0;
 
     // --- enable derivatives with respect to input, parameters or both
-    // if the desired derivative is available, child implementation
-    // should call the corresponding _enable method, else throw exception
-    virtual void enableFirstDerivative() = 0;  // coordinates first derivatives
-    virtual void enableSecondDerivative() = 0;  // coordinates second derivatives
-    virtual void enableVariationalFirstDerivative() = 0;  // parameter first derivatives
-    virtual void enableCrossFirstDerivative() = 0;  // parameters first coordinates first derivatives
-    virtual void enableCrossSecondDerivative() = 0; // parameters first coordinates second derivatives
+    // child impl is called to setup desired derivatives (if possible)
+    void enableFirstDerivative(); // coordinates first derivatives
+    void enableSecondDerivative(); // coordinates second derivatives
+    void enableVariationalFirstDerivative(); // parameter first derivatives
+    void enableCrossFirstDerivative(); // parameters first coordinates first derivatives
+    void enableCrossSecondDerivative(); // parameters first coordinates second derivatives
+
     // shortcut for enabling multiple derivatives
     void enableDerivatives(const DerivativeOptions &doptToEnable);
 
     // --- Propagation
     // Routine for propagation
-    virtual void evaluate(const double * in, const bool flag_deriv = false) = 0;
+    virtual void evaluate(const double in[], bool flag_deriv) = 0;
+    void evaluate(const double in[]) { this->evaluate(in, false); } // default
 
     // --- Get outputs
     // it remains to be decided by child classes
     // how to store and access the output
-    virtual void getOutput(double * out) = 0;
-    virtual double getOutput(const int i) = 0;
+    virtual void getOutput(double out[]) const = 0;
+    virtual double getOutput(int i) const = 0;
 
-    virtual void getFirstDerivative(double ** d1) = 0; // d1[noutput][ninput]
-    virtual void getFirstDerivative(const int iout, double * d1) = 0; // iout is the output index
-    virtual double getFirstDerivative(const int iout, const int i1d) = 0; // i1d the input index
+    virtual void getFirstDerivative(double d1[]) const = 0; // d1[noutput*ninput]
+    virtual void getFirstDerivative(int iout, double d1[]) const = 0; // iout is the output index
+    virtual double getFirstDerivative(int iout, int i1d) const = 0; // i1d the input index
 
-    virtual void getSecondDerivative(double ** d2) = 0; // d2[noutput][ninput]
-    virtual void getSecondDerivative(const int iout, double * d2) = 0;
-    virtual double getSecondDerivative(const int iout, const int i2d) = 0; // i2d the input index
+    virtual void getSecondDerivative(double d2[]) const = 0; // d2[noutput*ninput]
+    virtual void getSecondDerivative(int iout, double d2[]) const = 0;
+    virtual double getSecondDerivative(int iout, int i2d) const = 0; // i2d the input index
 
-    virtual void getVariationalFirstDerivative(double ** vd1) = 0; // vd1[noutput][nvpar]
-    virtual void getVariationalFirstDerivative(const int iout, double * vd1) = 0;
-    virtual double getVariationalFirstDerivative(const int iout, const int iv1d) = 0; // iv1d the variational parameter index
+    virtual void getVariationalFirstDerivative(double vd1[]) const = 0; // vd1[noutput*nvpar]
+    virtual void getVariationalFirstDerivative(int iout, double vd1[]) const= 0;
+    virtual double getVariationalFirstDerivative(int iout, int iv1d) const = 0; // iv1d the variational parameter index
 
-    virtual void getCrossFirstDerivative(double *** d1vd1) = 0; // d1vd1[noutput][ninput][nvpar]
-    virtual void getCrossFirstDerivative(const int iout, double ** d1vd1) = 0;
-    virtual double getCrossFirstDerivative(const int iout, const int i1d, const int iv1d) = 0;
+    virtual void getCrossFirstDerivative(double d1vd1[]) const = 0; // d1vd1[noutput*ninput*nvpar]
+    virtual void getCrossFirstDerivative(int iout, double d1vd1[]) const = 0;
+    virtual double getCrossFirstDerivative(int iout, int i1d, int iv1d) const = 0;
 
-    virtual void getCrossSecondDerivative(double *** d2vd1) = 0; // d2vd1[noutput][ninput][nvpar]
-    virtual void getCrossSecondDerivative(const int iout, double ** d2vd1) = 0;
-    virtual double getCrossSecondDerivative(const int iout, const int i2d, const int iv1d) = 0;
+    virtual void getCrossSecondDerivative(double d2vd1[]) const = 0; // d2vd1[noutput*ninput*nvpar]
+    virtual void getCrossSecondDerivative(int iout, double d2vd1[]) const = 0;
+    virtual double getCrossSecondDerivative(int iout, int i2d, int iv1d) const = 0;
 };
 
 
