@@ -28,6 +28,9 @@ protected:
     virtual void _enableCrossFirstDerivative() = 0;
     virtual void _enableCrossSecondDerivative() = 0;
 
+    // ANN evaluation routine
+    virtual void _evaluate(const double in[], bool flag_deriv) = 0;
+
 public:
     ANNFunctionInterface(const int ninput, const int noutput, const int nvpar):
         _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
@@ -42,7 +45,6 @@ public:
 
     // --- Get general information about the ANN-function
     virtual void printInfo(bool verbose) const; // can be overriden, but should still be called
-    void printInfo() const { this->printInfo(false); } // default
     virtual std::string getLibName() const = 0; // should return a string that identifies the used backend lib
 
     int getNInput() const {return _ninput;}
@@ -77,8 +79,8 @@ public:
 
     // --- Propagation
     // Routine for propagation
-    virtual void evaluate(const double in[], bool flag_deriv) = 0;
-    void evaluate(const double in[]) { this->evaluate(in, false); } // default
+    void evaluate(const double in[], bool flag_deriv) { this->_evaluate(in, flag_deriv); }
+    void evaluate(const double in[]) { this->_evaluate(in, false); } // default
 
     // --- Get outputs
     // it remains to be decided by child classes

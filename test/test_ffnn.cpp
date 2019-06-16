@@ -14,7 +14,7 @@ int main() {
     ffnn.connectFFNN();
     ffnn.assignVariationalParameters();
     
-    QPolyNetwork wrapper(&ffnn);
+    QPolyNetwork wrapper(ffnn);
     DerivativeOptions dopt;
     dopt.d1 = true; dopt.d2 = true;
     dopt.vd1 = true; dopt.cd1 = true; dopt.cd2 = true;

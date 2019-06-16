@@ -44,8 +44,8 @@ int main() {
 
         // we create two identical wrappers to benchmark
         // separate derivative branches more easily
-        QPolyNetwork wrapper1(ffnnList[i]);
-        QPolyNetwork wrapper2(ffnnList[i]);
+        QPolyNetwork wrapper1(*ffnnList[i]);
+        QPolyNetwork wrapper2(*ffnnList[i]);
 
         cout << endl << "Benchmarking " << nameList[i] << " FFNN with "
              << wrapper1.getNVariationalParameters() << " weights..." << endl;

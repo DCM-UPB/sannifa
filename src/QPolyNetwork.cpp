@@ -14,8 +14,8 @@ std::array<int, 3> loadDimensions(const std::string &filename)
 
 QPolyNetwork::QPolyNetwork(const FeedForwardNeuralNetwork &ffnn): ANNFunctionInterface(ffnn.getNInput(), ffnn.getNOutput(), ffnn.getNVariationalParameters())
 {
-    _bareFFNN = new FeedForwardNeuralNetwork(ffnn);
-    _derivFFNN = new FeedForwardNeuralNetwork(ffnn);
+    _bareFFNN = new FeedForwardNeuralNetwork(&ffnn);
+    _derivFFNN = new FeedForwardNeuralNetwork(&ffnn);
 }
 
 QPolyNetwork::QPolyNetwork(const std::string &filename): ANNFunctionInterface(loadDimensions(filename))
@@ -30,6 +30,16 @@ QPolyNetwork::~QPolyNetwork()
     delete _bareFFNN;
     delete _derivFFNN;
 }
+
+
+void QPolyNetwork::_evaluate(const double in[], const bool flag_deriv)
+{
+    FeedForwardNeuralNetwork * const ffnnToUse = flag_deriv ? _derivFFNN : _bareFFNN;
+    ffnnToUse->setInput(in);
+    ffnnToUse->FFPropagate();
+    _flag_deriv = flag_deriv;
+}
+
 
 void QPolyNetwork::saveToFile(const std::string &filename) const
 {
@@ -54,14 +64,6 @@ void QPolyNetwork::setVariationalParameters(const double vp[])
 {
     _bareFFNN->setVariationalParameter(vp);
     _derivFFNN->setVariationalParameter(vp);
-}
-
-void QPolyNetwork::evaluate(const double in[], const bool flag_deriv)
-{
-    FeedForwardNeuralNetwork * const ffnnToUse = flag_deriv ? _derivFFNN : _bareFFNN;
-    ffnnToUse->setInput(in);
-    ffnnToUse->FFPropagate();
-    _flag_deriv = flag_deriv;
 }
 
 

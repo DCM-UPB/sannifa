@@ -32,6 +32,8 @@ protected:
     void _enableCrossFirstDerivative() final;
     void _enableCrossSecondDerivative() final;
 
+    void _evaluate(const double in[], bool flag_deriv) final;
+
 public:
     TorchNetwork(const torch::nn::AnyModule &torchNN, int ninput, int noutput); // we keep just a copy of the torch module
     //explicit TorchNetwork(const std::string &filename); // load from file, not implemented (load the model externally and use the normal constructor instead)
@@ -49,8 +51,6 @@ public:
     void getVariationalParameters(double vp[]) const final;
     void setVariationalParameter(int ivp, double vp) final;
     void setVariationalParameters(const double vp[]) final;
-
-    void evaluate(const double in[], bool flag_deriv) final;
 
     void getOutput(double out[]) const final;
     double getOutput(int i) const final;

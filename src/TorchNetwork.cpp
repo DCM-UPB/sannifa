@@ -186,7 +186,7 @@ void TorchNetwork::_enableCrossSecondDerivative()
 }
 
 
-void TorchNetwork::evaluate(const double in[], const bool flag_deriv)
+void TorchNetwork::_evaluate(const double in[], const bool flag_deriv)
 {    // propagate and compute output (if flag_deriv, incl. all enabled gradients)
 
     // control flags

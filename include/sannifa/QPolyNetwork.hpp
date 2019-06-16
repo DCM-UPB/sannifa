@@ -18,6 +18,8 @@ private:
     void _enableCrossFirstDerivative() final { _derivFFNN->addCrossFirstDerivativeSubstrate(); }
     void _enableCrossSecondDerivative() final { _derivFFNN->addCrossSecondDerivativeSubstrate(); }
 
+    void _evaluate(const double in[], bool flag_deriv) final;
+
 public:
     explicit QPolyNetwork(const FeedForwardNeuralNetwork &ffnn); // we keep just a copy of the ffnn object
     explicit QPolyNetwork(const std::string &filename); // load from file
@@ -36,8 +38,6 @@ public:
     void getVariationalParameters(double vp[]) const final { _bareFFNN->getVariationalParameter(vp); }
     void setVariationalParameter(int ivp, double vp) final;
     void setVariationalParameters(const double vp[]) final;
-
-    void evaluate(const double in[], bool flag_deriv) final;
 
     void getOutput(double out[]) const final;
     double getOutput(int i) const final;

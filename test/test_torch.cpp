@@ -37,7 +37,7 @@ struct Model: public torch::nn::Module {
         return X;
     }
 
-    const std::shared_ptr<Model> clone(c10::optional<c10::Device>&)
+    std::shared_ptr<Model> clone(const c10::optional<c10::Device>&)
     {
         std::shared_ptr<Model> ptr (new Model((*this)));
         return ptr;
@@ -52,7 +52,7 @@ int main() {
     
     torch::nn::AnyModule anymodel(Model(2, 2, 3));
     TorchNetwork wrapper(anymodel, 2, 3);
-    auto model = wrapper.getTorchNN()->get<Model>();
+    auto model = wrapper.getTorchNN().get<Model>();
     
     auto in = torch::ones({2,}, torch::dtype(torch::kFloat64));
     auto out = model.forward(in);
