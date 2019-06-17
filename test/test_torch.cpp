@@ -1,7 +1,7 @@
 #include <torch/torch.h>
 #include <iostream>
 
-#include "sannifa/TorchNetwork.hpp"
+#include "sannifa/PyTorchWrapper.hpp"
 
 #include "checkDerivatives.hpp"
 
@@ -51,7 +51,7 @@ int main() {
     using namespace std;
     
     torch::nn::AnyModule anymodel(Model(2, 2, 3));
-    TorchNetwork wrapper(anymodel, 2, 3);
+    PyTorchWrapper wrapper(anymodel, 2, 3);
     auto model = wrapper.getTorchNN().get<Model>();
     
     auto in = torch::ones({2,}, torch::dtype(torch::kFloat64));
@@ -62,7 +62,7 @@ int main() {
     cout << "output:" << endl << out << endl;
     cout << endl;
 
-    // the same with TorchNetwork wrapper
+    // the same with PyTorchWrapper wrapper
     cout << endl << "Using wrapper object:" << endl;
     cout << "dimensions: "
          << wrapper.getNInput() << " "
@@ -79,7 +79,7 @@ int main() {
 
     // derivative check
     torch::nn::AnyModule anymodel2(Model(2, 4, 2));
-    TorchNetwork wrapper2(anymodel2, 2, 2);
+    PyTorchWrapper wrapper2(anymodel2, 2, 2);
     DerivativeOptions dopt;
     dopt.d1 = true; dopt.d2 = true; dopt.vd1 = true;
     wrapper2.enableDerivatives(dopt);

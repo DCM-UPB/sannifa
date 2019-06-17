@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "qnets/poly/FeedForwardNeuralNetwork.hpp"
-#include "sannifa/QPolyNetwork.hpp"
+#include "sannifa/QPolyWrapper.hpp"
 
 #include "PropagateBenchmark.hpp"
 
@@ -44,8 +44,8 @@ int main() {
 
         // we create two identical wrappers to benchmark
         // separate derivative branches more easily
-        QPolyNetwork wrapper1(*ffnnList[i]);
-        QPolyNetwork wrapper2(*ffnnList[i]);
+        QPolyWrapper wrapper1(*ffnnList[i]);
+        QPolyWrapper wrapper2(*ffnnList[i]);
 
         cout << endl << "Benchmarking " << nameList[i] << " FFNN with "
              << wrapper1.getNVariationalParameters() << " weights..." << endl;

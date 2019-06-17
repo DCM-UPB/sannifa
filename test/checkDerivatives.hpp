@@ -3,9 +3,9 @@
 #include <cmath>
 #include <vector>
 
-#include "sannifa/ANNFunctionInterface.hpp"
+#include "sannifa/Sannifa.hpp"
 
-void checkDerivatives(ANNFunctionInterface * ann, const double &TINY)
+void checkDerivatives(Sannifa * ann, const double &TINY)
 {
     using namespace std;
 

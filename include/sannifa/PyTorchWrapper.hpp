@@ -1,11 +1,11 @@
-#ifndef TORCH_NETWORK
-#define TORCH_NETWORK
+#ifndef SANNIFA_PYTORCHWRAPPER_HPP
+#define SANNIFA_PYTORCHWRAPPER_HPP
 
-#include "sannifa/ANNFunctionInterface.hpp"
+#include "sannifa/Sannifa.hpp"
 #include <torch/torch.h>
 
-// ANNFunctionInterface wrapper around pytorch models
-class TorchNetwork final: public ANNFunctionInterface
+// Sannifa wrapper around PyTorch models
+class PyTorchWrapper final: public Sannifa
 {
 protected:
     torch::nn::AnyModule _torchNN; // any torch module to be wrapped
@@ -35,10 +35,10 @@ protected:
     void _evaluate(const double in[], bool flag_deriv) final;
 
 public:
-    TorchNetwork(const torch::nn::AnyModule &torchNN, int ninput, int noutput); // we keep just a copy of the torch module
-    //explicit TorchNetwork(const std::string &filename); // load from file, not implemented (load the model externally and use the normal constructor instead)
+    PyTorchWrapper(const torch::nn::AnyModule &torchNN, int ninput, int noutput); // we keep just a copy of the torch module
+    //explicit PyTorchWrapper(const std::string &filename); // load from file, not implemented (load the model externally and use the normal constructor instead)
 
-    ~TorchNetwork() final;
+    ~PyTorchWrapper() final;
 
     const torch::nn::AnyModule &getTorchNN() const;
 

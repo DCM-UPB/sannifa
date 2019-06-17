@@ -1,4 +1,4 @@
-#include "sannifa/TorchNetwork.hpp"
+#include "sannifa/PyTorchWrapper.hpp"
 
 #include <numeric>
 #include <functional>
@@ -27,14 +27,14 @@ int copyTensorData(torch::Tensor &tensor, double out[])
     return nvpar;
 }
 
-void TorchNetwork::_set_requires_grad(const bool requires_grad)
+void PyTorchWrapper::_set_requires_grad(const bool requires_grad)
 {
     for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
         parameterT.set_requires_grad(requires_grad);
     }
 }
 
-void TorchNetwork::_storeVariationalDerivatives(const int iout, const bool flag_zero_grad)
+void PyTorchWrapper::_storeVariationalDerivatives(const int iout, const bool flag_zero_grad)
 {   // store computed variational derivatives
     int ivpar = 0;
     for (at::Tensor &parameterT : _torchNN.ptr()->parameters(true)) {
@@ -44,8 +44,8 @@ void TorchNetwork::_storeVariationalDerivatives(const int iout, const bool flag_
 }
 
 
-TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput):
-        ANNFunctionInterface(ninput, noutput, countParameters(torchNN))
+PyTorchWrapper::PyTorchWrapper(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput):
+        Sannifa(ninput, noutput, countParameters(torchNN))
 {
     _torchNN = torchNN.clone();
 
@@ -72,7 +72,7 @@ TorchNetwork::TorchNetwork(const torch::nn::AnyModule &torchNN, const int ninput
     }
 }
 
-TorchNetwork::~TorchNetwork()
+PyTorchWrapper::~PyTorchWrapper()
 {
     delete[] _vparIndex1;
     delete[] _vparIndex2;
@@ -89,20 +89,20 @@ TorchNetwork::~TorchNetwork()
     }
 }
 
-const torch::nn::AnyModule &TorchNetwork::getTorchNN() const
+const torch::nn::AnyModule &PyTorchWrapper::getTorchNN() const
 {
     return _torchNN;
 }
 
-void TorchNetwork::saveToFile(const std::string &filename) const
+void PyTorchWrapper::saveToFile(const std::string &filename) const
 {
     torch::save(_torchNN.ptr(), filename);
 }
 
-void TorchNetwork::printInfo(const bool verbose) const
+void PyTorchWrapper::printInfo(const bool verbose) const
 {
     using namespace std;
-    ANNFunctionInterface::printInfo(verbose);
+    Sannifa::printInfo(verbose);
     if (verbose) {
         ostream &oStream = cout;
         oStream << endl;
@@ -113,14 +113,14 @@ void TorchNetwork::printInfo(const bool verbose) const
 }
 
 
-double TorchNetwork::getVariationalParameter(const int ivp) const
+double PyTorchWrapper::getVariationalParameter(const int ivp) const
 {
     auto flat_tensor = _torchNN.ptr()->parameters(true)[_vparIndex1[ivp]].view(-1);
     auto flat_accessor = flat_tensor.accessor<double, 1>();
     return flat_accessor[_vparIndex2[ivp]];
 }
 
-void TorchNetwork::getVariationalParameters(double vp[]) const
+void PyTorchWrapper::getVariationalParameters(double vp[]) const
 {
     int ivpar = 0;
     for (auto &parameterT : _torchNN.ptr()->parameters(true)) {
@@ -133,14 +133,14 @@ void TorchNetwork::getVariationalParameters(double vp[]) const
     }
 }
 
-void TorchNetwork::setVariationalParameter(const int ivp, const double vp)
+void PyTorchWrapper::setVariationalParameter(const int ivp, const double vp)
 {
     auto flat_tensor = _torchNN.ptr()->parameters(true)[_vparIndex1[ivp]].view(-1);
     auto flat_accessor = flat_tensor.accessor<double, 1>();
     flat_accessor[_vparIndex2[ivp]] = vp;
 }
 
-void TorchNetwork::setVariationalParameters(const double vp[])
+void PyTorchWrapper::setVariationalParameters(const double vp[])
 {
     int ivpar = 0;
     for (auto &parameterT : _torchNN.ptr()->parameters(true)) {
@@ -154,39 +154,39 @@ void TorchNetwork::setVariationalParameters(const double vp[])
 }
 
 
-void TorchNetwork::_enableFirstDerivative()
+void PyTorchWrapper::_enableFirstDerivative()
 {
     if (this->hasFirstDerivative()) { return; }
     _currentD1 = new double[_noutput*_ninput];
     std::fill(_currentD1, _currentD1 + _noutput*_ninput, 0.);
 }
 
-void TorchNetwork::_enableSecondDerivative()
+void PyTorchWrapper::_enableSecondDerivative()
 {
     if (this->hasSecondDerivative()) { return; }
     _currentD2 = new double[_noutput*_ninput];
     std::fill(_currentD2, _currentD2 + _noutput*_ninput, 0.);
 }
 
-void TorchNetwork::_enableVariationalFirstDerivative()
+void PyTorchWrapper::_enableVariationalFirstDerivative()
 {
     if (this->hasVariationalFirstDerivative()) { return; }
     _currentVD1 = new double[_noutput*_nvpar];
     std::fill(_currentVD1, _currentVD1 + _noutput*_nvpar, 0.);
 }
 
-void TorchNetwork::_enableCrossFirstDerivative()
+void PyTorchWrapper::_enableCrossFirstDerivative()
 {
-    throw std::runtime_error("CrossFirstDerivative not implemented yet in TorchNetwork.");
+    throw std::runtime_error("CrossFirstDerivative not implemented in PyTorchWrapper.");
 }
 
-void TorchNetwork::_enableCrossSecondDerivative()
+void PyTorchWrapper::_enableCrossSecondDerivative()
 {
-    throw std::runtime_error("CrossSecondDerivative not implemented yet in TorchNetwork.");
+    throw std::runtime_error("CrossSecondDerivative not implemented in PyTorchWrapper.");
 }
 
 
-void TorchNetwork::_evaluate(const double in[], const bool flag_deriv)
+void PyTorchWrapper::_evaluate(const double in[], const bool flag_deriv)
 {    // propagate and compute output (if flag_deriv, incl. all enabled gradients)
 
     // control flags
@@ -277,65 +277,65 @@ void TorchNetwork::_evaluate(const double in[], const bool flag_deriv)
     if (doMultiBackward) { inputTensor.grad().detach_(); } // else we will leak memory heavily
 }
 
-void TorchNetwork::getOutput(double out[]) const
+void PyTorchWrapper::getOutput(double out[]) const
 {
     for (int i = 0; i < _noutput; ++i) { out[i] = _currentOutput[i]; }
 }
 
-double TorchNetwork::getOutput(const int i) const
+double PyTorchWrapper::getOutput(const int i) const
 {
     return _currentOutput[i];
 }
 
-void TorchNetwork::getFirstDerivative(double d1[]) const
+void PyTorchWrapper::getFirstDerivative(double d1[]) const
 {
     std::copy(_currentD1, _currentD1 + _noutput*_ninput, d1);
 }
 
-void TorchNetwork::getFirstDerivative(const int iout, double d1[]) const
+void PyTorchWrapper::getFirstDerivative(const int iout, double d1[]) const
 {
     for (int j = 0; j < _ninput; ++j) { d1[j] = _currentD1[iout*_ninput + j]; }
 }
 
-double TorchNetwork::getFirstDerivative(const int iout, const int i1d) const
+double PyTorchWrapper::getFirstDerivative(const int iout, const int i1d) const
 {
     return _currentD1[iout*_ninput + i1d];
 }
 
-void TorchNetwork::getSecondDerivative(double d2[]) const
+void PyTorchWrapper::getSecondDerivative(double d2[]) const
 {
     std::copy(_currentD2, _currentD2 + _noutput*_ninput, d2);
 }
 
-void TorchNetwork::getSecondDerivative(const int iout, double d2[]) const
+void PyTorchWrapper::getSecondDerivative(const int iout, double d2[]) const
 {
     for (int j = 0; j < _ninput; ++j) { d2[j] = _currentD2[iout*_ninput + j]; }
 }
 
-double TorchNetwork::getSecondDerivative(const int iout, const int i2d) const
+double PyTorchWrapper::getSecondDerivative(const int iout, const int i2d) const
 {
     return _currentD2[iout*_ninput + i2d];
 }
 
-void TorchNetwork::getVariationalFirstDerivative(double vd1[]) const
+void PyTorchWrapper::getVariationalFirstDerivative(double vd1[]) const
 {
     std::copy(_currentVD1, _currentVD1 + _noutput*_nvpar, vd1);
 }
 
-void TorchNetwork::getVariationalFirstDerivative(const int iout, double vd1[]) const
+void PyTorchWrapper::getVariationalFirstDerivative(const int iout, double vd1[]) const
 {
     for (int j = 0; j < _nvpar; ++j) { vd1[j] = _currentVD1[iout*_nvpar + j]; }
 }
 
-double TorchNetwork::getVariationalFirstDerivative(const int iout, const int iv1d) const
+double PyTorchWrapper::getVariationalFirstDerivative(const int iout, const int iv1d) const
 {
     return _currentVD1[iout*_nvpar + iv1d];
 }
 
-void TorchNetwork::getCrossFirstDerivative(double d1vd1[]) const {}
-void TorchNetwork::getCrossFirstDerivative(const int iout, double d1vd1[]) const {}
-double TorchNetwork::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d) const { return 0.; }
+void PyTorchWrapper::getCrossFirstDerivative(double d1vd1[]) const {}
+void PyTorchWrapper::getCrossFirstDerivative(const int iout, double d1vd1[]) const {}
+double PyTorchWrapper::getCrossFirstDerivative(const int iout, const int i1d, const int iv1d) const { return 0.; }
 
-void TorchNetwork::getCrossSecondDerivative(double d2vd1[]) const {}
-void TorchNetwork::getCrossSecondDerivative(const int iout, double d2vd1[]) const {}
-double TorchNetwork::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d) const { return 0.; }
+void PyTorchWrapper::getCrossSecondDerivative(double d2vd1[]) const {}
+void PyTorchWrapper::getCrossSecondDerivative(const int iout, double d2vd1[]) const {}
+double PyTorchWrapper::getCrossSecondDerivative(const int iout, const int i2d, const int iv1d) const { return 0.; }

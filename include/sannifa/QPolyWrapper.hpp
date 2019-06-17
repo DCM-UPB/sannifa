@@ -1,11 +1,11 @@
-#ifndef QPOLY_NETWORK
-#define QPOLY_NETWORK
+#ifndef SANNIFA_QPOLYWRAPPER_HPP
+#define SANNIFA_QPOLYWRAPPER_HPP
 
-#include "sannifa/ANNFunctionInterface.hpp"
+#include "sannifa/Sannifa.hpp"
 #include "qnets/poly/FeedForwardNeuralNetwork.hpp"
 
-// ANNFunctionInterface wrapper around DCM-UPB/QNets PolyNet
-class QPolyNetwork final: public ANNFunctionInterface
+// Sannifa wrapper around DCM-UPB/QNets PolyNet
+class QPolyWrapper final: public Sannifa
 {
 private:
     FeedForwardNeuralNetwork * _bareFFNN = nullptr; // the network used for simple evaluation (no derivatives)
@@ -21,10 +21,10 @@ private:
     void _evaluate(const double in[], bool flag_deriv) final;
 
 public:
-    explicit QPolyNetwork(const FeedForwardNeuralNetwork &ffnn); // we keep just a copy of the ffnn object
-    explicit QPolyNetwork(const std::string &filename); // load from file
+    explicit QPolyWrapper(const FeedForwardNeuralNetwork &ffnn); // we keep just a copy of the ffnn object
+    explicit QPolyWrapper(const std::string &filename); // load from file
 
-    ~QPolyNetwork() final; // and delete the copy here
+    ~QPolyWrapper() final; // and delete the copy here
 
     const FeedForwardNeuralNetwork &getBareFFNN() const { return *_bareFFNN; }
     const FeedForwardNeuralNetwork &getDerivFFNN() const { return *_derivFFNN; }
@@ -32,7 +32,7 @@ public:
     void saveToFile(const std::string &filename) const final;
 
     void printInfo(bool verbose) const final; // add backend specific print, if verbose
-    std::string getLibName() const final {return "libffnn";}
+    std::string getLibName() const final {return "libqnets/poly";}
 
     double getVariationalParameter(int ivp) const final { return _bareFFNN->getVariationalParameter(ivp); }
     void getVariationalParameters(double vp[]) const final { _bareFFNN->getVariationalParameter(vp); }
