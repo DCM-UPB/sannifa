@@ -37,7 +37,7 @@ int main() {
         "large (96x192x192x1)"
     };
 
-    cout << endl << "--- Benchmark with libffnn backend ---" << endl;
+    cout << endl << "--- Benchmark with libqnets/poly backend ---" << endl;
     for (int i=0; i<3; ++i) {
         ffnnList[i]->connectFFNN();
         ffnnList[i]->assignVariationalParameters();

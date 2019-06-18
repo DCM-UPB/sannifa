@@ -19,7 +19,7 @@ int main() {
     using L2Type = LayerConfig<4, actf::Sigmoid>;
     using L3Type = LayerConfig<2, actf::Sigmoid>;
     using NetType = TemplNet<RealT, dconf, 2, L1Type, L2Type, L3Type>;
-    QTemplWrapper<NetType> wrapper{}; // allocated derivs are enabled per default
+    QTemplWrapper<NetType> wrapper; // allocated derivs are enabled per default
 
     // generate some random betas
     random_device rdev;

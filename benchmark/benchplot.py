@@ -13,17 +13,23 @@ def getPlotY(data, X):
 def getRelativeY(Y, Yrel):
     ret = []
     for it, y in enumerate(Y):
-        ret.append(y / Yrel[it] * 100)
+        ret.append(y / Yrel[it])
     return ret
 
 
 outputs = {}
 
-print("Executing libffnn benchmark...")
+print("Executing libqnets/poly benchmark...")
 print()
-outputs["lffnn"] = subprocess.getoutput( "../build/benchmark/bench_ffnn" )
+outputs["lqpoly"] = subprocess.getoutput( "../build/benchmark/bench_qpoly" )
 print("Done.")
-print(outputs["lffnn"])
+print(outputs["lqpoly"])
+
+print("Executing libqnets/templ benchmark...")
+print()
+outputs["lqtempl"] = subprocess.getoutput( "../build/benchmark/bench_qtempl" )
+print("Done.")
+print(outputs["lqtempl"])
 
 print("Executing libtorch benchmark...")
 print()
@@ -51,13 +57,13 @@ for key in outputs.keys():
 print(data)            
 
 plotDerivs = ["noderiv", "d1+vd1", "d1+d2+vd1"]
-colors = ["blue", "red"]
+colors = ["orange", "blue", "red"]
 pos = arange(len(plotDerivs))
 nlibs = len(data)
 print(nlibs)
 height = 0.8 / nlibs 
 
-reflib = "lffnn"
+reflib = "lqpoly"
 
 figure()
 #suptitle("ANN Derivatives Benchmark")
@@ -68,12 +74,10 @@ for itb, benchName in enumerate(benchNames):
     for itk, key in enumerate(data.keys()):
         datay = getPlotY(data[key][benchName], plotDerivs)
         ploty = getRelativeY(datay, refY)
-        barh(pos-itk*height, ploty, height, color = colors[itk])
-#        for itd, time in enumerate(datay):
-#            text(101, itd - (0.5+itk)*height, str(time) + " ms", color=colors[itk])
+        barh(pos-itk*height, ploty, height, log = True, color = colors[itk])
     yticks(pos - 0.5*nlibs*height, plotDerivs)
     if (itb == 2):
-        xlabel("Relative Time (%)")
+        xlabel("Time (relative to worst)")
     if (itb == 0):
         legend(data.keys())
 

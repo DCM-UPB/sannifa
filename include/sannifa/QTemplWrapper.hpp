@@ -14,9 +14,9 @@ class QTemplWrapper final: public Sannifa
 private:
     bool _flag_deriv = false; // was the last evaluation with derivFFNN?
 
-    void _enableFirstDerivative() final { nn->dflags = nn->dflags.AND(templ::StaticDFlags<templ::DerivConfig::D1>{}); }
-    void _enableSecondDerivative() final { nn->dflags = nn->dflags.AND(templ::StaticDFlags<templ::DerivConfig::D12>{}); }
-    void _enableVariationalFirstDerivative() final { nn->dflags = nn->dflags.AND(templ::StaticDFlags<templ::DerivConfig::VD1>{}); }
+    void _enableFirstDerivative() final { nn->dflags = nn->dflags.OR(templ::StaticDFlags<templ::DerivConfig::D1>{}); }
+    void _enableSecondDerivative() final { nn->dflags = nn->dflags.OR(templ::StaticDFlags<templ::DerivConfig::D12>{}); }
+    void _enableVariationalFirstDerivative() final { nn->dflags = nn->dflags.OR(templ::StaticDFlags<templ::DerivConfig::VD1>{}); }
     void _enableCrossFirstDerivative() final { throw std::runtime_error("CrossFirstDerivative not implemented in QTemplWrapper."); }
 
     void _enableCrossSecondDerivative() final { throw std::runtime_error("CrossSecondDerivative not implemented in QTemplWrapper."); }
@@ -30,7 +30,7 @@ private:
 public:
     TNet * const nn; // templnet can be safely public
 
-    
+
     // Construct
 
     explicit QTemplWrapper(templ::DynamicDFlags init_dflags = templ::DynamicDFlags{TNet::dconf.dconf()}):
@@ -54,9 +54,16 @@ public:
 
     void printInfo(bool verbose) const final // add backend specific print, if verbose
     {
+        using namespace std;
         Sannifa::printInfo(verbose);
         if (verbose) {
-            // print stuff
+            cout << endl;
+            cout << "TemplNet Derivatives (Allowed / Enabled):" << endl;
+            cout << "  d1:  " << (nn->allowsD1() ? "1" : "0") << " / " << (nn->hasD1() ? "1" : "0") << endl;
+            cout << "  d2:  " << (nn->allowsD2() ? "1" : "0") << " / " << (nn->hasD2() ? "1" : "0") << endl;
+            cout << "  vd1: " << (nn->allowsVD1() ? "1" : "0") << " / " << (nn->hasVD1() ? "1" : "0") << endl;
+            cout << "  cd1: 0 / 0" << endl;
+            cout << "  cd2: 0 / 0" << endl;
         }
     }
     std::string getLibName() const final {return "libqnets/templ";}
