@@ -36,6 +36,7 @@ protected:
 
 public:
     PyTorchWrapper(const torch::nn::AnyModule &torchNN, int ninput, int noutput); // we keep just a copy of the torch module
+    PyTorchWrapper(const PyTorchWrapper &other): PyTorchWrapper(other.getTorchNN(), other.getNInput(), other.getNOutput()) { this->enableDerivatives(other.getEnabledDerivatives()); } // copy construct
     //explicit PyTorchWrapper(const std::string &filename); // load from file, not implemented (load the model externally and use the normal constructor instead)
 
     ~PyTorchWrapper() final;

@@ -22,6 +22,7 @@ private:
 
 public:
     explicit QPolyWrapper(const FeedForwardNeuralNetwork &ffnn); // we keep just a copy of the ffnn object
+    QPolyWrapper(const QPolyWrapper &other): QPolyWrapper(other.getBareFFNN()) { this->enableDerivatives(other.getEnabledDerivatives()); } // copy construct
     explicit QPolyWrapper(const std::string &filename); // load from file
 
     ~QPolyWrapper() final; // and delete the copy here

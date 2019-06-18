@@ -42,7 +42,7 @@ public:
             Sannifa(TNet::ninput, TNet::noutput, TNet::nbeta,
                     DerivativeOptions{init_nn.hasD1(), init_nn.hasD2(), init_nn.hasVD1(), false, false}),
                     nn(new TNet(init_nn)) {} // we keep just a copy
-
+    QTemplWrapper(const QTemplWrapper &other): QTemplWrapper(other.nn) { } // copy construct
     explicit QTemplWrapper(const std::string &filename) {} // load from file (not yet)
 
     ~QTemplWrapper() final { delete nn; }

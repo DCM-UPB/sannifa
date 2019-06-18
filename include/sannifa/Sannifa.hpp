@@ -76,6 +76,7 @@ public:
 
     // shortcut for enabling multiple derivatives
     void enableDerivatives(const DerivativeOptions &doptToEnable);
+    DerivativeOptions getEnabledDerivatives() const { return _dopt; }
 
     // --- Propagation
     // Routine for propagation
