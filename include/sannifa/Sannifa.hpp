@@ -33,9 +33,9 @@ protected:
 
 public:
     Sannifa(const int ninput, const int noutput, const int nvpar, DerivativeOptions dopt = DerivativeOptions()):
-        _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
+            _dopt(dopt), _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
     explicit Sannifa(const std::array<int, 3> &dimensions, DerivativeOptions dopt = DerivativeOptions()):
-        _ninput(dimensions[0]), _noutput(dimensions[1]), _nvpar(dimensions[2]) {}
+            _dopt(dopt), _ninput(dimensions[0]), _noutput(dimensions[1]), _nvpar(dimensions[2]) {}
     // if possible, the following constructor should be implemented in child:
     // ChildNetwork(const std::string &filename): Sannifa(_loadDimensions(filename)) {...};
     virtual ~Sannifa() = default;
