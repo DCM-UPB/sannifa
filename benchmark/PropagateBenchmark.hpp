@@ -6,11 +6,11 @@
 #include <algorithm>
 #include <functional>
 
-#include "sannifa/ANNFunctionInterface.hpp"
+#include "sannifa/Sannifa.hpp"
 
 #include "Timer.hpp"
 
-double propagateBenchmark(ANNFunctionInterface * ann, const int nsteps, const bool flag_deriv = false)
+double propagateBenchmark(Sannifa * ann, const int nsteps, const bool flag_deriv = false)
 {   // sample time per evaluation (forward + backward, if flag_deriv)
     Timer * timer = new Timer();
     double time;
@@ -33,7 +33,7 @@ double propagateBenchmark(ANNFunctionInterface * ann, const int nsteps, const bo
 }
 
 
-std::array<double, 6> benchmarkDerivatives(ANNFunctionInterface * ann1, ANNFunctionInterface * ann2, const std::array<int, 6> &nsteps, const bool verbose = false)
+std::array<double, 6> benchmarkDerivatives(Sannifa * ann1, Sannifa * ann2, const std::array<int, 6> &nsteps, const bool verbose = false)
 {   // ! ann1 and ann2 should be identical (but different objects) !
     using namespace std;
     // expects an ann without any derivatives enabled

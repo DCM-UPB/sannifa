@@ -1,10 +1,11 @@
 #include <iostream>
 #include <assert.h>
 #include <cmath>
+#include <vector>
 
-#include "sannifa/ANNFunctionInterface.hpp"
+#include "sannifa/Sannifa.hpp"
 
-void checkDerivatives(ANNFunctionInterface * ann, const double &TINY)
+void checkDerivatives(Sannifa * ann, const double &TINY)
 {
     using namespace std;
 
@@ -127,8 +128,8 @@ void checkDerivatives(ANNFunctionInterface * ann, const double &TINY)
 
     // --- variational derivative
 
-    double * anal_dfxdbeta = new double[ann->getNVariationalParameters()];
-    double * anal_dfydbeta = new double[ann->getNVariationalParameters()];
+    std::vector<double> anal_dfxdbeta(ann->getNVariationalParameters());
+    std::vector<double> anal_dfydbeta(ann->getNVariationalParameters());
 
     if (ann->hasVariationalFirstDerivative()) {
         ann->evaluate(x, true);
@@ -300,7 +301,5 @@ void checkDerivatives(ANNFunctionInterface * ann, const double &TINY)
     delete[] anal_dfxdx2dbeta;
     delete[] anal_dfydx2dbeta;
 */
-    delete[] anal_dfxdbeta;
-    delete[] anal_dfydbeta;
 
 }

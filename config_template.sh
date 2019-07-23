@@ -1,4 +1,4 @@
 #!/bin/sh
 
-FFNN_ROOT=/path/to/FFNN/root
+QNETS_ROOT=/path/to/QNets/root
 TORCH_ROOT=/path/to/torch/root

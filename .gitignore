@@ -31,8 +31,48 @@
 *.out
 *.app
 
-# build directory
-build
 
-# custom config.sh
+# --- JetBrains Clion files (selective)
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/mongoSettings.xml
+.idea_modules/
+.idea/replstate.xml
+.idea/httpRequests
+
+
+# -- project specific ignores --
+lib*
+build
 config.sh
+vgcore*
+
+benchmark/*/*.out
+
+doc/*.aux
+doc/*.dvi
+doc/*.idx
+doc/*.log
+doc/*.out
+doc/*.ps
+doc/*.gz
+doc/*.fdb_latexmk
+doc/*.fls
+doc/*.ilg
+doc/*.ind
+doc/auto
+
+doc/doxygen/*/*

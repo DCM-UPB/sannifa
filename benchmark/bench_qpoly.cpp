@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "ffnn/net/FeedForwardNeuralNetwork.hpp"
-#include "sannifa/FFNNetwork.hpp"
+#include "qnets/poly/FeedForwardNeuralNetwork.hpp"
+#include "sannifa/QPolyWrapper.hpp"
 
 #include "PropagateBenchmark.hpp"
 
@@ -37,15 +37,15 @@ int main() {
         "large (96x192x192x1)"
     };
 
-    cout << endl << "--- Benchmark with libffnn backend ---" << endl;
+    cout << endl << "--- Benchmark with libqnets/poly backend ---" << endl;
     for (int i=0; i<3; ++i) {
         ffnnList[i]->connectFFNN();
         ffnnList[i]->assignVariationalParameters();
 
         // we create two identical wrappers to benchmark
         // separate derivative branches more easily
-        FFNNetwork wrapper1(ffnnList[i]);
-        FFNNetwork wrapper2(ffnnList[i]);
+        QPolyWrapper wrapper1(*ffnnList[i]);
+        QPolyWrapper wrapper2(*ffnnList[i]);
 
         cout << endl << "Benchmarking " << nameList[i] << " FFNN with "
              << wrapper1.getNVariationalParameters() << " weights..." << endl;

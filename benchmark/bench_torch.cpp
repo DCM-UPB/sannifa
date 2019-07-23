@@ -1,7 +1,7 @@
 #include <torch/torch.h>
 #include <iostream>
 
-#include "sannifa/TorchNetwork.hpp"
+#include "sannifa/PyTorchWrapper.hpp"
 #include "PropagateBenchmark.hpp"
 
 struct Model: public torch::nn::Module {
@@ -83,8 +83,8 @@ int main() {
     for (int i=0; i<3; ++i) {
         // we create two identical wrappers to benchmark
         // separate derivative branches more easily
-        TorchNetwork wrapper1(ffnnList[i], ninputList[i], 1);
-        TorchNetwork wrapper2(ffnnList[i], ninputList[i], 1);
+        PyTorchWrapper wrapper1(ffnnList[i], ninputList[i], 1);
+        PyTorchWrapper wrapper2(ffnnList[i], ninputList[i], 1);
 
         cout << endl << "Benchmarking " << nameList[i] << " FFNN with "
              << wrapper1.getNVariationalParameters() << " weights..." << endl;
