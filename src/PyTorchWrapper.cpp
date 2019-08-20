@@ -45,7 +45,7 @@ void PyTorchWrapper::_storeVariationalDerivatives(const int iout, const bool fla
 
 
 PyTorchWrapper::PyTorchWrapper(const torch::nn::AnyModule &torchNN, const int ninput, const int noutput):
-        Sannifa(ninput, noutput, countParameters(torchNN))
+        Sannifa(ninput, ninput, noutput, countParameters(torchNN))
 {
     _torchNN = torchNN.clone();
 
@@ -275,6 +275,11 @@ void PyTorchWrapper::_evaluate(const double in[], const bool flag_deriv)
     }
 
     if (doMultiBackward) { inputTensor.grad().detach_(); } // else we will leak memory heavily
+}
+
+void PyTorchWrapper::_evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[], const bool flag_deriv)
+{
+    throw std::runtime_error("[PyTorchWrapper::_evaluate] Non-original input feed not supported.");
 }
 
 void PyTorchWrapper::getOutput(double out[]) const

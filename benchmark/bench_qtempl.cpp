@@ -27,21 +27,21 @@ int main() {
     using L1Type_s = LayerConfig<nhu1[0], actf::Sigmoid>;
     using L2Type_s = LayerConfig<nhu2[0], actf::Sigmoid>;
     using L3Type_s = LayerConfig<yndim, actf::Sigmoid>;
-    using NetType_s = TemplNet<RealT, dconf, xndim[0], L1Type_s, L2Type_s, L3Type_s>;
+    using NetType_s = TemplNet<RealT, dconf, xndim[0], xndim[0], L1Type_s, L2Type_s, L3Type_s>;
     QTemplWrapper<NetType_s> wrapper_s(dflags0);
 
     // Medium Net
     using L1Type_m = LayerConfig<nhu1[1], actf::Sigmoid>;
     using L2Type_m = LayerConfig<nhu2[1], actf::Sigmoid>;
     using L3Type_m = LayerConfig<yndim, actf::Sigmoid>;
-    using NetType_m = TemplNet<RealT, dconf, xndim[1], L1Type_m, L2Type_m, L3Type_m>;
+    using NetType_m = TemplNet<RealT, dconf, xndim[1], xndim[1], L1Type_m, L2Type_m, L3Type_m>;
     QTemplWrapper<NetType_m> wrapper_m(dflags0);
 
     // Large Net
     using L1Type_l = LayerConfig<nhu1[2], actf::Sigmoid>;
     using L2Type_l = LayerConfig<nhu2[2], actf::Sigmoid>;
     using L3Type_l = LayerConfig<yndim, actf::Sigmoid>;
-    using NetType_l = TemplNet<RealT, dconf, xndim[2], L1Type_l, L2Type_l, L3Type_l>;
+    using NetType_l = TemplNet<RealT, dconf, xndim[2], xndim[2], L1Type_l, L2Type_l, L3Type_l>;
     QTemplWrapper<NetType_l> wrapper_l(dflags0);
 
     // generate some random betas

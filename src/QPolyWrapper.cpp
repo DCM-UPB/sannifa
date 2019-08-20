@@ -1,18 +1,20 @@
 #include "sannifa/QPolyWrapper.hpp"
 
+#include <exception>
+
 // internal helpers
 
-std::array<int, 3> loadDimensions(const std::string &filename)
+std::array<int, 4> loadDimensions(const std::string &filename)
 {
     const char * fname_char = filename.c_str();
     FeedForwardNeuralNetwork ffnn(fname_char);
-    std::array<int, 3> ret {ffnn.getNInput(), ffnn.getNOutput(), ffnn.getNVariationalParameters()};
+    std::array<int, 4> ret {ffnn.getNInput(), ffnn.getNInput(), ffnn.getNOutput(), ffnn.getNVariationalParameters()};
     return ret;
 }
 
 // class methods
 
-QPolyWrapper::QPolyWrapper(const FeedForwardNeuralNetwork &ffnn): Sannifa(ffnn.getNInput(), ffnn.getNOutput(), ffnn.getNVariationalParameters())
+QPolyWrapper::QPolyWrapper(const FeedForwardNeuralNetwork &ffnn): Sannifa(ffnn.getNInput(), ffnn.getNInput(), ffnn.getNOutput(), ffnn.getNVariationalParameters())
 {
     _bareFFNN = new FeedForwardNeuralNetwork(&ffnn);
     _derivFFNN = new FeedForwardNeuralNetwork(&ffnn);
@@ -40,6 +42,10 @@ void QPolyWrapper::_evaluate(const double in[], const bool flag_deriv)
     _flag_deriv = flag_deriv;
 }
 
+void QPolyWrapper::_evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[], const bool flag_deriv)
+{
+    throw std::runtime_error("[QPolyWrapper::_evaluate] Non-original input feed not supported.");
+}
 
 void QPolyWrapper::saveToFile(const std::string &filename) const
 {

@@ -11,9 +11,10 @@ void Sannifa::printInfo(const bool verbose) const
     cout << "--------------------" << endl;
     cout << "Backend: " << this->getLibName() << endl;
     cout << endl;
-    cout << "NInputs  : " << this->getNInput() << endl;
-    cout << "NOutputs : " << this->getNOutput() << endl;
-    cout << "NParams  : " << this->getNVariationalParameters() << endl;
+    cout << "NInputs (orig) : " << this->getNOrigInput() << endl;
+    cout << "NInputs (net)  : " << this->getNInput() << endl;
+    cout << "NOutputs       : " << this->getNOutput() << endl;
+    cout << "NParams        : " << this->getNVariationalParameters() << endl;
     cout << endl;
     cout << "Derivatives:" << endl;
     cout << "  d1:  " << (this->hasFirstDerivative() ? "yes" : "no") << endl;
