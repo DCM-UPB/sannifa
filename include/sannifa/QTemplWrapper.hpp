@@ -23,8 +23,30 @@ private:
 
     void _evaluate(const double in[], bool flag_deriv) final
     {
-        nn->setInput(in, in+TNet::ninput);
-        nn->FFPropagate();
+        if (flag_deriv) {
+            nn->Propagate(in);
+        }
+        else {
+            const templ::DynamicDFlags orig_flags = nn->dflags;
+            static constexpr templ::DynamicDFlags off_flags(templ::DerivConfig::OFF);
+            nn->dflags = off_flags;
+            nn->Propagate(in);
+            nn->dflags = orig_flags;
+        }
+    }
+
+    void _evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[], bool flag_deriv) final
+    {
+        if (flag_deriv) {
+            nn->PropagateDerived(in, orig_d1, orig_d2);
+        }
+        else {
+            const templ::DynamicDFlags orig_flags = nn->dflags;
+            static constexpr templ::DynamicDFlags off_flags(templ::DerivConfig::OFF);
+            nn->dflags = off_flags;
+            nn->PropagateDerived(in, orig_d1, orig_d2);
+            nn->dflags = orig_flags;
+        }
     }
 
 public:
@@ -34,12 +56,12 @@ public:
     // Construct
 
     explicit QTemplWrapper(templ::DynamicDFlags init_dflags = templ::DynamicDFlags{TNet::dconf.dconf()}):
-            Sannifa(TNet::ninput, TNet::noutput, TNet::nbeta,
+            Sannifa(TNet::orig_ninput, TNet::ninput, TNet::noutput, TNet::nbeta,
                     DerivativeOptions{init_dflags.d1(), init_dflags.d2(), init_dflags.vd1(), false, false}),
             nn(new TNet(init_dflags)) {} // construct new nn
 
     explicit QTemplWrapper(const TNet &init_nn):
-            Sannifa(TNet::ninput, TNet::noutput, TNet::nbeta,
+            Sannifa(TNet::orig_ninput, TNet::ninput, TNet::noutput, TNet::nbeta,
                     DerivativeOptions{init_nn.hasD1(), init_nn.hasD2(), init_nn.hasVD1(), false, false}),
                     nn(new TNet(init_nn)) {} // we keep just a copy
     QTemplWrapper(const QTemplWrapper &other): QTemplWrapper(*other.nn) { } // copy construct
@@ -80,11 +102,11 @@ public:
     double getOutput(int i) const final { return nn->getOutput(i); }
 
     void getFirstDerivative(double d1[]) const final { std::copy(nn->getD1().begin(), nn->getD1().end(), d1); }
-    void getFirstDerivative(int iout, double d1[]) const final { std::copy(nn->getD1().begin() + iout*TNet::ninput, nn->getD1().begin() + (iout+1)*TNet::ninput, d1); }
+    void getFirstDerivative(int iout, double d1[]) const final { std::copy(nn->getD1().begin() + iout*TNet::orig_ninput, nn->getD1().begin() + (iout+1)*TNet::orig_ninput, d1); }
     double getFirstDerivative(int iout, int i1d) const final { return nn->getD1(iout, i1d); }
 
     void getSecondDerivative(double d2[]) const final { std::copy(nn->getD2().begin(), nn->getD2().end(), d2); }
-    void getSecondDerivative(int iout, double d2[]) const final { std::copy(nn->getD2().begin() + iout*TNet::ninput, nn->getD2().begin() + (iout+1)*TNet::ninput, d2);  }
+    void getSecondDerivative(int iout, double d2[]) const final { std::copy(nn->getD2().begin() + iout*TNet::orig_ninput, nn->getD2().begin() + (iout+1)*TNet::orig_ninput, d2);  }
     double getSecondDerivative(int iout, int i2d) const final { return nn->getD2(iout, i2d); }
 
     void getVariationalFirstDerivative(double vd1[]) const final { std::copy(nn->getVD1().begin(), nn->getVD1().end(), vd1); }

@@ -19,7 +19,7 @@ private:
     DerivativeOptions _dopt = DerivativeOptions();
 
 protected:
-    const int _ninput, _noutput, _nvpar;
+    const int _orig_ninput, _ninput, _noutput, _nvpar;
 
     // child routines to setup appropriate derivative calculation
     virtual void _enableFirstDerivative() = 0;
@@ -29,13 +29,14 @@ protected:
     virtual void _enableCrossSecondDerivative() = 0;
 
     // ANN evaluation routine
-    virtual void _evaluate(const double in[], bool flag_deriv) = 0;
+    virtual void _evaluate(const double in[], bool flag_deriv) = 0; // use if input is original input (or no deriv needed)
+    virtual void _evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[], bool flag_deriv) = 0; // use if input is derived from original input (and deriv needed)
 
 public:
-    Sannifa(const int ninput, const int noutput, const int nvpar, DerivativeOptions dopt = DerivativeOptions()):
-            _dopt(dopt), _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
-    explicit Sannifa(const std::array<int, 3> &dimensions, DerivativeOptions dopt = DerivativeOptions()):
-            _dopt(dopt), _ninput(dimensions[0]), _noutput(dimensions[1]), _nvpar(dimensions[2]) {}
+    Sannifa(const int orig_ninput, const int ninput, const int noutput, const int nvpar, DerivativeOptions dopt = DerivativeOptions()):
+            _dopt(dopt), _orig_ninput(orig_ninput), _ninput(ninput), _noutput(noutput), _nvpar(nvpar) {}
+    explicit Sannifa(const std::array<int, 4> &dimensions, DerivativeOptions dopt = DerivativeOptions()):
+            _dopt(dopt), _orig_ninput(dimensions[0]), _ninput(dimensions[1]), _noutput(dimensions[2]), _nvpar(dimensions[3]) {}
     // if possible, the following constructor should be implemented in child:
     // ChildNetwork(const std::string &filename): Sannifa(_loadDimensions(filename)) {...};
     virtual ~Sannifa() = default;
@@ -47,6 +48,7 @@ public:
     virtual void printInfo(bool verbose) const; // can be overriden, but should still be called
     virtual std::string getLibName() const = 0; // should return a string that identifies the used backend lib
 
+    int getNOrigInput() const {return _orig_ninput;}
     int getNInput() const {return _ninput;}
     int getNOutput() const {return _noutput;}
     int getNVariationalParameters() const {return _nvpar;}
@@ -80,8 +82,10 @@ public:
 
     // --- Propagation
     // Routine for propagation
-    void evaluate(const double in[], bool flag_deriv) { this->_evaluate(in, flag_deriv); }
+    void evaluate(const double in[], bool flag_deriv) { this->_evaluate(in, flag_deriv); } // use if original input
     void evaluate(const double in[]) { this->_evaluate(in, false); } // default
+    void evaluateDerived(const double in[]) { this->_evaluateDerived(in, nullptr, nullptr, false); }
+    void evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[]) { this->_evaluateDerived(in, orig_d1, orig_d2, true); }
 
     // --- Get outputs
     // it remains to be decided by child classes

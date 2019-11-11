@@ -19,6 +19,7 @@ private:
     void _enableCrossSecondDerivative() final { _derivFFNN->addCrossSecondDerivativeSubstrate(); }
 
     void _evaluate(const double in[], bool flag_deriv) final;
+    void _evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[], bool flag_deriv) final;
 
 public:
     explicit QPolyWrapper(const FeedForwardNeuralNetwork &ffnn); // we keep just a copy of the ffnn object

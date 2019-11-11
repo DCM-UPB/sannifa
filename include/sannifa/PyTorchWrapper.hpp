@@ -33,6 +33,7 @@ protected:
     void _enableCrossSecondDerivative() final;
 
     void _evaluate(const double in[], bool flag_deriv) final;
+    void _evaluateDerived(const double in[], const double orig_d1[], const double orig_d2[], bool flag_deriv) final;
 
 public:
     PyTorchWrapper(const torch::nn::AnyModule &torchNN, int ninput, int noutput); // we keep just a copy of the torch module
